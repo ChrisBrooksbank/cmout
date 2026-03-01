@@ -1,0 +1,23 @@
+{
+  "name": "CmOut — Chelmsford Events",
+  "short_name": "CmOut",
+  "description": "Discover what's on in Chelmsford. Live music, theatre, fitness classes, community events and more.",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1a1a2e",
+  "background_color": "#1a1a2e",
+  "lang": "en-GB",
+  "categories": ["entertainment", "lifestyle", "social"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

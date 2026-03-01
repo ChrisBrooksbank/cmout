@@ -25,7 +25,7 @@
 
 ### PWA Offline (spec: pwa-offline.md)
 
-- [ ] Add web app manifest (public/manifest.json): name, icons, theme colour, display standalone
+- [x] Add web app manifest (public/manifest.json): name, icons, theme colour, display standalone
 - [ ] Add service worker (src/sw.ts via vite-plugin-pwa or manual): cache app shell on install
 - [ ] Add offline event data strategy: cache events.json in Cache API, serve stale-while-revalidate
 - [ ] Add offline indicator UI component (banner shown when navigator.onLine is false)
