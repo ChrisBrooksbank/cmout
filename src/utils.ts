@@ -66,7 +66,8 @@ const SOURCE_PRIORITY: Record<string, number> = {
   skiddle: 2,
   ents24: 3,
   ticketmaster: 4,
-  ical: 5,
+  dice: 5,
+  ical: 6,
 };
 
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {

@@ -12,6 +12,7 @@
     "fetch:ents24": "tsx src/cli.ts --source ents24",
     "fetch:ticketmaster": "tsx src/cli.ts --source ticketmaster",
     "fetch:ical": "tsx src/cli.ts --source ical",
+    "fetch:dice": "tsx src/cli.ts --source dice",
     "fetch:all": "tsx src/cli.ts --source all"
   },
   "dependencies": {

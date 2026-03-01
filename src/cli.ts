@@ -8,6 +8,7 @@ const VALID_SOURCES: EventSource[] = [
   "ents24",
   "ticketmaster",
   "ical",
+  "dice",
 ];
 
 function parseArgs(): { sources?: EventSource[] } {

@@ -1,6 +1,12 @@
 # Upcoming Events in Chelmsford
 
-> Sources: openactive, skiddle, ticketmaster | Generated: 01/03/2026
+> Sources: openactive, skiddle, ticketmaster, dice | Generated: 01/03/2026
+
+## Sunday, 1 March 2026
+
+| Time | Event | Venue | Price |
+|------|-------|-------|-------|
+| 15:00 | Iago Banet | Hot Box | £10.00 |
 
 ## Monday, 2 March 2026
 
@@ -440,7 +446,7 @@
 
 ## Coverage Summary
 
-- **Total events (next 14 days):** 1010
-- **Sources active:** openactive, skiddle, ticketmaster
+- **Total events (next 14 days):** 1025
+- **Sources active:** openactive, skiddle, ticketmaster, dice
 - **Sources pending:** ents24, ical
-- **Venues (12):** 44 Moulsham Street, Be At One, Chelmsford City Sports, Chelmsford Sport and Athletics Centre, Chelmsford Theatre, Dovedale Sports Centre, Riverside Leisure Centre, South Woodham Leisure, The  Courtyard, The Courtyard Chelmsford, The Public Hall Witham, Witham Town Football Club
+- **Venues (13):** 44 Moulsham Street, Be At One, Chelmsford City Sports, Chelmsford Sport and Athletics Centre, Chelmsford Theatre, Dovedale Sports Centre, Hot Box, Riverside Leisure Centre, South Woodham Leisure, The  Courtyard, The Courtyard Chelmsford, The Public Hall Witham, Witham Town Football Club

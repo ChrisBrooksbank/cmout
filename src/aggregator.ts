@@ -6,6 +6,7 @@ import {
   ents24Fetcher,
   ticketmasterFetcher,
   icalFetcher,
+  diceFetcher,
 } from "./fetchers/index.js";
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -13,6 +14,7 @@ const ALL_FETCHERS: Fetcher[] = [
   skiddleFetcher,
   ents24Fetcher,
   ticketmasterFetcher,
+  diceFetcher,
   icalFetcher,
 ];
 

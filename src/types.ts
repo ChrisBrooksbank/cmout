@@ -34,6 +34,7 @@ export type EventSource =
   | "ents24"
   | "ticketmaster"
   | "ical"
+  | "dice"
   | "user-submitted";
 
 export interface FetchResult {
