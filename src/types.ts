@@ -16,26 +16,26 @@ export interface CmEvent {
 }
 
 export type EventCategory =
-  | "live-music"
-  | "theatre-comedy"
-  | "festival"
-  | "fitness-class"
-  | "community"
-  | "library"
-  | "church-faith"
-  | "sport"
-  | "kids"
-  | "pub-bar"
-  | "other";
+  | 'live-music'
+  | 'theatre-comedy'
+  | 'festival'
+  | 'fitness-class'
+  | 'community'
+  | 'library'
+  | 'church-faith'
+  | 'sport'
+  | 'kids'
+  | 'pub-bar'
+  | 'other';
 
 export type EventSource =
-  | "openactive"
-  | "skiddle"
-  | "ents24"
-  | "ticketmaster"
-  | "ical"
-  | "dice"
-  | "user-submitted";
+  | 'openactive'
+  | 'skiddle'
+  | 'ents24'
+  | 'ticketmaster'
+  | 'ical'
+  | 'dice'
+  | 'user-submitted';
 
 export interface FetchResult {
   source: EventSource;

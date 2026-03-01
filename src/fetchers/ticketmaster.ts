@@ -1,7 +1,13 @@
-import type { CmEvent, FetchResult, Fetcher, EventCategory } from "../types.js";
-import { makeEventId, fetchJson, CHELMSFORD_LAT, CHELMSFORD_LNG, DEFAULT_RADIUS_MILES } from "../utils.js";
+import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
+import {
+  makeEventId,
+  fetchJson,
+  CHELMSFORD_LAT,
+  CHELMSFORD_LNG,
+  DEFAULT_RADIUS_MILES,
+} from '../utils.js';
 
-const BASE_URL = "https://app.ticketmaster.com/discovery/v2/events.json";
+const BASE_URL = 'https://app.ticketmaster.com/discovery/v2/events.json';
 
 interface TmEvent {
   id: string;
@@ -36,33 +42,30 @@ interface TmResponse {
   page?: { totalElements: number; totalPages: number };
 }
 
-function mapTmCategory(classifications: TmEvent["classifications"]): EventCategory {
-  if (!classifications?.length) return "other";
-  const segment = classifications[0].segment?.name?.toLowerCase() ?? "";
-  const genre = classifications[0].genre?.name?.toLowerCase() ?? "";
+function mapTmCategory(classifications: TmEvent['classifications']): EventCategory {
+  if (!classifications?.length) return 'other';
+  const segment = classifications[0].segment?.name?.toLowerCase() ?? '';
+  const genre = classifications[0].genre?.name?.toLowerCase() ?? '';
 
-  if (segment === "music") return "live-music";
-  if (segment === "sports") return "sport";
-  if (segment === "arts & theatre") {
-    if (genre.includes("comedy")) return "theatre-comedy";
-    return "theatre-comedy";
+  if (segment === 'music') return 'live-music';
+  if (segment === 'sports') return 'sport';
+  if (segment === 'arts & theatre') {
+    if (genre.includes('comedy')) return 'theatre-comedy';
+    return 'theatre-comedy';
   }
-  if (genre.includes("festival")) return "festival";
-  if (genre.includes("family") || genre.includes("children")) return "kids";
-  return "other";
+  if (genre.includes('festival')) return 'festival';
+  if (genre.includes('family') || genre.includes('children')) return 'kids';
+  return 'other';
 }
 
 function parseTmEvent(ev: TmEvent): CmEvent {
   const venue = ev._embedded?.venues?.[0];
   const startDate = new Date(
-    `${ev.dates.start.localDate}T${ev.dates.start.localTime ?? "00:00:00"}`
+    `${ev.dates.start.localDate}T${ev.dates.start.localTime ?? '00:00:00'}`
   );
-  const endDate =
-    ev.dates.end?.localDate
-      ? new Date(
-          `${ev.dates.end.localDate}T${ev.dates.end.localTime ?? "23:59:59"}`
-        )
-      : null;
+  const endDate = ev.dates.end?.localDate
+    ? new Date(`${ev.dates.end.localDate}T${ev.dates.end.localTime ?? '23:59:59'}`)
+    : null;
 
   const priceRange = ev.priceRanges?.[0];
   let price: string | null = null;
@@ -74,22 +77,20 @@ function parseTmEvent(ev: TmEvent): CmEvent {
   }
 
   // Pick best image (prefer ~600px wide)
-  const image = ev.images
-    ?.sort((a, b) => Math.abs(a.width - 600) - Math.abs(b.width - 600))
-    ?.[0];
+  const image = ev.images?.sort((a, b) => Math.abs(a.width - 600) - Math.abs(b.width - 600))?.[0];
 
   return {
-    id: makeEventId("ticketmaster", ev.id),
+    id: makeEventId('ticketmaster', ev.id),
     title: ev.name,
-    description: ev.info ?? ev.pleaseNote ?? "",
+    description: ev.info ?? ev.pleaseNote ?? '',
     startDate,
     endDate,
-    venue: venue?.name ?? "Unknown venue",
+    venue: venue?.name ?? 'Unknown venue',
     address: [venue?.address?.line1, venue?.city?.name, venue?.postalCode]
       .filter(Boolean)
-      .join(", "),
+      .join(', '),
     category: mapTmCategory(ev.classifications),
-    source: "ticketmaster",
+    source: 'ticketmaster',
     sourceUrl: ev.url,
     latitude: venue?.location ? parseFloat(venue.location.latitude) : null,
     longitude: venue?.location ? parseFloat(venue.location.longitude) : null,
@@ -99,7 +100,7 @@ function parseTmEvent(ev: TmEvent): CmEvent {
 }
 
 export const ticketmasterFetcher: Fetcher = {
-  name: "ticketmaster",
+  name: 'ticketmaster',
   async fetch(): Promise<FetchResult> {
     const start = Date.now();
     const errors: string[] = [];
@@ -108,9 +109,9 @@ export const ticketmasterFetcher: Fetcher = {
     const apiKey = process.env.TICKETMASTER_API_KEY;
     if (!apiKey) {
       return {
-        source: "ticketmaster",
+        source: 'ticketmaster',
         events: [],
-        errors: ["TICKETMASTER_API_KEY not set in .env"],
+        errors: ['TICKETMASTER_API_KEY not set in .env'],
         fetchedAt: new Date(),
         durationMs: Date.now() - start,
       };
@@ -121,10 +122,10 @@ export const ticketmasterFetcher: Fetcher = {
         apikey: apiKey,
         latlong: `${CHELMSFORD_LAT},${CHELMSFORD_LNG}`,
         radius: String(DEFAULT_RADIUS_MILES),
-        unit: "miles",
-        countryCode: "GB",
-        size: "100",
-        sort: "date,asc",
+        unit: 'miles',
+        countryCode: 'GB',
+        size: '100',
+        sort: 'date,asc',
       });
 
       const url = `${BASE_URL}?${params}`;
@@ -139,7 +140,7 @@ export const ticketmasterFetcher: Fetcher = {
     }
 
     return {
-      source: "ticketmaster",
+      source: 'ticketmaster',
       events,
       errors,
       fetchedAt: new Date(),

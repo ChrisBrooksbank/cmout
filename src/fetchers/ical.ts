@@ -1,6 +1,6 @@
-import ical from "node-ical";
-import type { CmEvent, FetchResult, Fetcher } from "../types.js";
-import { makeEventId } from "../utils.js";
+import ical from 'node-ical';
+import type { CmEvent, FetchResult, Fetcher } from '../types.js';
+import { makeEventId } from '../utils.js';
 
 // Default feeds to try - users can add more via ICAL_FEED_URLS env var
 const DEFAULT_FEEDS: { name: string; url: string }[] = [
@@ -9,10 +9,7 @@ const DEFAULT_FEEDS: { name: string; url: string }[] = [
   // { name: "Essex Libraries", url: "https://essexlibraries.libcal.com/ical_subscribe.php?..." },
 ];
 
-function parseIcalEvent(
-  vevent: ical.VEvent,
-  feedName: string
-): CmEvent | null {
+function parseIcalEvent(vevent: ical.VEvent, feedName: string): CmEvent | null {
   if (!vevent.start) return null;
 
   const startDate = vevent.start instanceof Date ? vevent.start : new Date(vevent.start);
@@ -25,16 +22,16 @@ function parseIcalEvent(
     : null;
 
   return {
-    id: makeEventId("ical", vevent.uid ?? `${feedName}-${startDate.toISOString()}`),
-    title: vevent.summary ?? "Untitled Event",
-    description: vevent.description ?? "",
+    id: makeEventId('ical', vevent.uid ?? `${feedName}-${startDate.toISOString()}`),
+    title: vevent.summary ?? 'Untitled Event',
+    description: vevent.description ?? '',
     startDate,
     endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
     venue: vevent.location ?? feedName,
-    address: vevent.location ?? "",
-    category: "community", // iCal events default to community
-    source: "ical",
-    sourceUrl: typeof vevent.url === "string" ? vevent.url : "",
+    address: vevent.location ?? '',
+    category: 'community', // iCal events default to community
+    source: 'ical',
+    sourceUrl: typeof vevent.url === 'string' ? vevent.url : '',
     latitude: (vevent as unknown as Record<string, unknown>).geo
       ? ((vevent as unknown as Record<string, unknown>).geo as { lat: number }).lat
       : null,
@@ -46,11 +43,7 @@ function parseIcalEvent(
   };
 }
 
-async function fetchIcalFeed(
-  name: string,
-  url: string,
-  errors: string[]
-): Promise<CmEvent[]> {
+async function fetchIcalFeed(name: string, url: string, errors: string[]): Promise<CmEvent[]> {
   const events: CmEvent[] = [];
 
   try {
@@ -58,7 +51,7 @@ async function fetchIcalFeed(
     const now = new Date();
 
     for (const [, component] of Object.entries(data)) {
-      if (component.type !== "VEVENT") continue;
+      if (component.type !== 'VEVENT') continue;
       const vevent = component as ical.VEvent;
 
       // Only include future events (or events happening today)
@@ -76,7 +69,7 @@ async function fetchIcalFeed(
 }
 
 export const icalFetcher: Fetcher = {
-  name: "ical",
+  name: 'ical',
   async fetch(): Promise<FetchResult> {
     const start = Date.now();
     const errors: string[] = [];
@@ -87,27 +80,28 @@ export const icalFetcher: Fetcher = {
 
     const envUrls = process.env.ICAL_FEED_URLS;
     if (envUrls) {
-      for (const url of envUrls.split(",").map((u) => u.trim()).filter(Boolean)) {
-        feeds.push({ name: "Custom", url });
+      for (const url of envUrls
+        .split(',')
+        .map(u => u.trim())
+        .filter(Boolean)) {
+        feeds.push({ name: 'Custom', url });
       }
     }
 
     if (feeds.length === 0) {
       return {
-        source: "ical",
+        source: 'ical',
         events: [],
-        errors: ["No iCal feeds configured. Set ICAL_FEED_URLS in .env"],
+        errors: ['No iCal feeds configured. Set ICAL_FEED_URLS in .env'],
         fetchedAt: new Date(),
         durationMs: Date.now() - start,
       };
     }
 
-    const results = await Promise.allSettled(
-      feeds.map((f) => fetchIcalFeed(f.name, f.url, errors))
-    );
+    const results = await Promise.allSettled(feeds.map(f => fetchIcalFeed(f.name, f.url, errors)));
 
     for (const result of results) {
-      if (result.status === "fulfilled") {
+      if (result.status === 'fulfilled') {
         events.push(...result.value);
       } else {
         errors.push(`iCal feed failed: ${result.reason}`);
@@ -115,7 +109,7 @@ export const icalFetcher: Fetcher = {
     }
 
     return {
-      source: "ical",
+      source: 'ical',
       events,
       errors,
       fetchedAt: new Date(),

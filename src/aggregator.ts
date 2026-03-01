@@ -1,5 +1,5 @@
-import type { CmEvent, FetchResult, Fetcher, EventSource } from "./types.js";
-import { deduplicateEvents, truncate } from "./utils.js";
+import type { CmEvent, FetchResult, Fetcher, EventSource } from './types.js';
+import { deduplicateEvents, truncate } from './utils.js';
 import {
   openactiveFetcher,
   skiddleFetcher,
@@ -7,7 +7,7 @@ import {
   ticketmasterFetcher,
   icalFetcher,
   diceFetcher,
-} from "./fetchers/index.js";
+} from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
   openactiveFetcher,
@@ -26,20 +26,16 @@ export interface AggregateResult {
   fetchedAt: Date;
 }
 
-export async function aggregateEvents(
-  sources?: EventSource[]
-): Promise<AggregateResult> {
-  const fetchers = sources
-    ? ALL_FETCHERS.filter((f) => sources.includes(f.name))
-    : ALL_FETCHERS;
+export async function aggregateEvents(sources?: EventSource[]): Promise<AggregateResult> {
+  const fetchers = sources ? ALL_FETCHERS.filter(f => sources.includes(f.name)) : ALL_FETCHERS;
 
-  const results = await Promise.allSettled(fetchers.map((f) => f.fetch()));
+  const results = await Promise.allSettled(fetchers.map(f => f.fetch()));
 
   const fetchResults: FetchResult[] = [];
   const allEvents: CmEvent[] = [];
 
   for (const result of results) {
-    if (result.status === "fulfilled") {
+    if (result.status === 'fulfilled') {
       fetchResults.push(result.value);
       allEvents.push(...result.value.events);
     }
@@ -59,19 +55,16 @@ export async function aggregateEvents(
 export function printReport(result: AggregateResult): void {
   const { events, rawResults, totalRaw, totalDeduped } = result;
 
-  console.log("\n" + "=".repeat(72));
-  console.log("  CHELMSFORD EVENTS AGGREGATOR - Coverage Report");
-  console.log("=".repeat(72));
+  console.log('\n' + '='.repeat(72));
+  console.log('  CHELMSFORD EVENTS AGGREGATOR - Coverage Report');
+  console.log('='.repeat(72));
 
   // Per-source summary
-  console.log("\n--- Source Summary ---\n");
+  console.log('\n--- Source Summary ---\n');
   console.log(
-    "Source".padEnd(16) +
-      "Events".padStart(8) +
-      "Errors".padStart(8) +
-      "Time (ms)".padStart(12)
+    'Source'.padEnd(16) + 'Events'.padStart(8) + 'Errors'.padStart(8) + 'Time (ms)'.padStart(12)
   );
-  console.log("-".repeat(44));
+  console.log('-'.repeat(44));
 
   for (const r of rawResults) {
     const errCount = r.errors.length;
@@ -83,13 +76,9 @@ export function printReport(result: AggregateResult): void {
     );
   }
 
-  console.log("-".repeat(44));
-  console.log(
-    "TOTAL (raw)".padEnd(16) + String(totalRaw).padStart(8)
-  );
-  console.log(
-    "After dedup".padEnd(16) + String(totalDeduped).padStart(8)
-  );
+  console.log('-'.repeat(44));
+  console.log('TOTAL (raw)'.padEnd(16) + String(totalRaw).padStart(8));
+  console.log('After dedup'.padEnd(16) + String(totalDeduped).padStart(8));
 
   // Category breakdown
   const byCat: Record<string, number> = {};
@@ -97,7 +86,7 @@ export function printReport(result: AggregateResult): void {
     byCat[ev.category] = (byCat[ev.category] ?? 0) + 1;
   }
 
-  console.log("\n--- Category Breakdown ---\n");
+  console.log('\n--- Category Breakdown ---\n');
   for (const [cat, count] of Object.entries(byCat).sort((a, b) => b[1] - a[1])) {
     console.log(`  ${cat.padEnd(20)} ${count}`);
   }
@@ -106,9 +95,9 @@ export function printReport(result: AggregateResult): void {
   if (events.length > 0) {
     const earliest = events[0].startDate;
     const latest = events[events.length - 1].startDate;
-    console.log("\n--- Date Range ---\n");
-    console.log(`  Earliest: ${earliest.toLocaleDateString("en-GB")}`);
-    console.log(`  Latest:   ${latest.toLocaleDateString("en-GB")}`);
+    console.log('\n--- Date Range ---\n');
+    console.log(`  Earliest: ${earliest.toLocaleDateString('en-GB')}`);
+    console.log(`  Latest:   ${latest.toLocaleDateString('en-GB')}`);
   }
 
   // Venue breakdown (top 15)
@@ -117,7 +106,7 @@ export function printReport(result: AggregateResult): void {
     byVenue[ev.venue] = (byVenue[ev.venue] ?? 0) + 1;
   }
 
-  console.log("\n--- Top Venues ---\n");
+  console.log('\n--- Top Venues ---\n');
   const topVenues = Object.entries(byVenue)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 15);
@@ -126,34 +115,30 @@ export function printReport(result: AggregateResult): void {
   }
 
   // Errors
-  const allErrors = rawResults.flatMap((r) =>
-    r.errors.map((e) => `[${r.source}] ${e}`)
-  );
+  const allErrors = rawResults.flatMap(r => r.errors.map(e => `[${r.source}] ${e}`));
   if (allErrors.length > 0) {
-    console.log("\n--- Errors ---\n");
+    console.log('\n--- Errors ---\n');
     for (const err of allErrors) {
       console.log(`  ! ${err}`);
     }
   }
 
   // Sample events
-  console.log("\n--- Sample Events (next 14 days) ---\n");
+  console.log('\n--- Sample Events (next 14 days) ---\n');
   const twoWeeks = new Date();
   twoWeeks.setDate(twoWeeks.getDate() + 14);
-  const upcoming = events.filter(
-    (e) => e.startDate >= new Date() && e.startDate <= twoWeeks
-  );
+  const upcoming = events.filter(e => e.startDate >= new Date() && e.startDate <= twoWeeks);
 
   const sample = upcoming.slice(0, 20);
   for (const ev of sample) {
-    const date = ev.startDate.toLocaleDateString("en-GB", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
+    const date = ev.startDate.toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
     });
-    const time = ev.startDate.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
+    const time = ev.startDate.toLocaleTimeString('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
     });
     console.log(
       `  ${date} ${time}  ${truncate(ev.title, 35).padEnd(37)} @ ${truncate(ev.venue, 25)}  [${ev.source}]`
@@ -164,5 +149,5 @@ export function printReport(result: AggregateResult): void {
     console.log(`  ... and ${upcoming.length - 20} more events`);
   }
 
-  console.log("\n" + "=".repeat(72) + "\n");
+  console.log('\n' + '='.repeat(72) + '\n');
 }

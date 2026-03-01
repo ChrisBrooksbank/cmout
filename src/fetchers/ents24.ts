@@ -1,8 +1,8 @@
-import type { CmEvent, FetchResult, Fetcher, EventCategory } from "../types.js";
-import { makeEventId, fetchJson } from "../utils.js";
+import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
+import { makeEventId, fetchJson } from '../utils.js';
 
-const BASE_URL = "https://api.ents24.com/event/list";
-const AUTH_URL = "https://api.ents24.com/auth/token";
+const BASE_URL = 'https://api.ents24.com/event/list';
+const AUTH_URL = 'https://api.ents24.com/auth/token';
 
 interface Ents24Event {
   id: string;
@@ -29,29 +29,29 @@ interface Ents24ListResponse {
 }
 
 function mapGenreToCategory(genres: { name: string }[]): EventCategory {
-  const names = genres.map((g) => g.name.toLowerCase());
-  if (names.some((n) => /music|gig|concert|dj|band|singer/.test(n))) return "live-music";
-  if (names.some((n) => /comedy|standup|stand-up/.test(n))) return "theatre-comedy";
-  if (names.some((n) => /theatre|theater|drama|musical|opera|ballet/.test(n)))
-    return "theatre-comedy";
-  if (names.some((n) => /festival/.test(n))) return "festival";
-  if (names.some((n) => /sport/.test(n))) return "sport";
-  if (names.some((n) => /kids|children|family/.test(n))) return "kids";
-  return "other";
+  const names = genres.map(g => g.name.toLowerCase());
+  if (names.some(n => /music|gig|concert|dj|band|singer/.test(n))) return 'live-music';
+  if (names.some(n => /comedy|standup|stand-up/.test(n))) return 'theatre-comedy';
+  if (names.some(n => /theatre|theater|drama|musical|opera|ballet/.test(n)))
+    return 'theatre-comedy';
+  if (names.some(n => /festival/.test(n))) return 'festival';
+  if (names.some(n => /sport/.test(n))) return 'sport';
+  if (names.some(n => /kids|children|family/.test(n))) return 'kids';
+  return 'other';
 }
 
 function parseEnts24Event(ev: Ents24Event): CmEvent {
   return {
-    id: makeEventId("ents24", ev.id),
+    id: makeEventId('ents24', ev.id),
     title: ev.title,
-    description: ev.description ?? "",
+    description: ev.description ?? '',
     startDate: new Date(ev.startDate),
     endDate: ev.endDate ? new Date(ev.endDate) : null,
     venue: ev.venue.name,
-    address: [ev.venue.town, ev.venue.postcode].filter(Boolean).join(", "),
+    address: [ev.venue.town, ev.venue.postcode].filter(Boolean).join(', '),
     category: mapGenreToCategory(ev.genre ?? []),
-    source: "ents24",
-    sourceUrl: ev.webLink ?? "",
+    source: 'ents24',
+    sourceUrl: ev.webLink ?? '',
     latitude: ev.venue.location?.lat ?? null,
     longitude: ev.venue.location?.lng ?? null,
     imageUrl: ev.image?.[0]?.url ?? null,
@@ -59,17 +59,14 @@ function parseEnts24Event(ev: Ents24Event): CmEvent {
   };
 }
 
-async function getAccessToken(
-  clientId: string,
-  clientSecret: string
-): Promise<string> {
+async function getAccessToken(clientId: string, clientSecret: string): Promise<string> {
   const res = await fetch(AUTH_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: clientId,
       client_secret: clientSecret,
-      grant_type: "client_credentials",
+      grant_type: 'client_credentials',
     }),
   });
 
@@ -82,7 +79,7 @@ async function getAccessToken(
 }
 
 export const ents24Fetcher: Fetcher = {
-  name: "ents24",
+  name: 'ents24',
   async fetch(): Promise<FetchResult> {
     const start = Date.now();
     const errors: string[] = [];
@@ -93,9 +90,9 @@ export const ents24Fetcher: Fetcher = {
 
     if (!clientId || !clientSecret) {
       return {
-        source: "ents24",
+        source: 'ents24',
         events: [],
-        errors: ["ENTS24_CLIENT_ID and/or ENTS24_CLIENT_SECRET not set in .env"],
+        errors: ['ENTS24_CLIENT_ID and/or ENTS24_CLIENT_SECRET not set in .env'],
         fetchedAt: new Date(),
         durationMs: Date.now() - start,
       };
@@ -105,9 +102,9 @@ export const ents24Fetcher: Fetcher = {
       const token = await getAccessToken(clientId, clientSecret);
 
       const params = new URLSearchParams({
-        "location": "name:Chelmsford",
-        "results_per_page": "50",
-        "incl_image": "true",
+        location: 'name:Chelmsford',
+        results_per_page: '50',
+        incl_image: 'true',
       });
 
       const url = `${BASE_URL}?${params}`;
@@ -121,7 +118,7 @@ export const ents24Fetcher: Fetcher = {
         throw new Error(`Ents24 API: HTTP ${res.status}`);
       }
 
-      const data = await res.json() as Ents24Event[] | Ents24ListResponse;
+      const data = (await res.json()) as Ents24Event[] | Ents24ListResponse;
       const eventList = Array.isArray(data) ? data : (data.data ?? []);
 
       for (const ev of eventList) {
@@ -132,7 +129,7 @@ export const ents24Fetcher: Fetcher = {
     }
 
     return {
-      source: "ents24",
+      source: 'ents24',
       events,
       errors,
       fetchedAt: new Date(),

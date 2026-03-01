@@ -1,4 +1,4 @@
-import type { CmEvent } from "./types.js";
+import type { CmEvent } from './types.js';
 
 // Chelmsford centre coordinates
 export const CHELMSFORD_LAT = 51.7356;
@@ -9,7 +9,7 @@ export const DEFAULT_RADIUS_MILES = 10;
  * Generate a deterministic ID from source + key fields.
  */
 export function makeEventId(source: string, ...parts: string[]): string {
-  const raw = [source, ...parts].join("|").toLowerCase();
+  const raw = [source, ...parts].join('|').toLowerCase();
   // Simple hash - good enough for dedup
   let hash = 0;
   for (let i = 0; i < raw.length; i++) {
@@ -25,8 +25,8 @@ export function makeEventId(source: string, ...parts: string[]): string {
 export function normalise(s: string): string {
   return s
     .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
+    .replace(/[^\w\s]/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -36,8 +36,7 @@ export function normalise(s: string): string {
  */
 export function isDuplicate(a: CmEvent, b: CmEvent): boolean {
   // Must be on the same day
-  const sameDay =
-    a.startDate.toDateString() === b.startDate.toDateString();
+  const sameDay = a.startDate.toDateString() === b.startDate.toDateString();
   if (!sameDay) return false;
 
   const titleA = normalise(a.title);
@@ -73,21 +72,18 @@ const SOURCE_PRIORITY: Record<string, number> = {
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
   // Sort by source priority (prefer higher-priority sources)
   const sorted = [...events].sort(
-    (a, b) =>
-      (SOURCE_PRIORITY[a.source] ?? 99) - (SOURCE_PRIORITY[b.source] ?? 99)
+    (a, b) => (SOURCE_PRIORITY[a.source] ?? 99) - (SOURCE_PRIORITY[b.source] ?? 99)
   );
 
   const result: CmEvent[] = [];
   for (const event of sorted) {
-    const hasDupe = result.some((existing) => isDuplicate(existing, event));
+    const hasDupe = result.some(existing => isDuplicate(existing, event));
     if (!hasDupe) {
       result.push(event);
     }
   }
 
-  return result.sort(
-    (a, b) => a.startDate.getTime() - b.startDate.getTime()
-  );
+  return result.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
 }
 
 /**
@@ -95,7 +91,7 @@ export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
  */
 export function truncate(s: string, maxLen: number): string {
   if (s.length <= maxLen) return s;
-  return s.slice(0, maxLen - 1) + "…";
+  return s.slice(0, maxLen - 1) + '…';
 }
 
 /**

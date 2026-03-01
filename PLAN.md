@@ -44,6 +44,7 @@ src/aggregator/          ← MOVE existing files here
 Install deps and create build config.
 
 **New dependencies:**
+
 ```
 react react-dom react-router-dom
 leaflet react-leaflet react-leaflet-cluster
@@ -54,6 +55,7 @@ idb
 ```
 
 **New files:**
+
 - `vite.config.ts` — Vite + VitePWA plugin (workbox config for events.json StaleWhileRevalidate + OSM tile CacheFirst)
 - `tsconfig.json` — update for React JSX, `include: ["src/app/**/*"]`
 - `tsconfig.node.json` — separate config for aggregator (Node target)
@@ -68,6 +70,7 @@ idb
 Create `src/aggregator/generate-events-json.ts` — runs aggregator, writes `events.json` to `dist/`.
 
 **package.json scripts:**
+
 ```json
 "dev": "vite",
 "build": "vite build && tsx src/aggregator/generate-events-json.ts",
@@ -76,6 +79,7 @@ Create `src/aggregator/generate-events-json.ts` — runs aggregator, writes `eve
 ```
 
 **netlify.toml:**
+
 ```toml
 [build]
   command = "npm run build"
@@ -100,6 +104,7 @@ Create `src/aggregator/generate-events-json.ts` — runs aggregator, writes `eve
 ## Step 4: Data Loading + Event List
 
 **Files:**
+
 - `src/app/types.ts` — `CmEventJSON` (same as CmEvent but dates are ISO strings)
 - `src/app/hooks/useEvents.ts` — fetch `/events.json`, provide via React Context. Background-check `/api/refresh-events` for newer data.
 - `src/app/components/Layout.tsx` — shell with fixed bottom tab nav (Events, Map, Favourites)
@@ -113,6 +118,7 @@ For dev: copy a pre-generated `events.json` into `public/` so Vite serves it.
 ## Step 5: Filtering + Search
 
 **Files:**
+
 - `src/app/lib/filters.ts` — pure filter functions (category, date range, venue, text search)
 - `src/app/hooks/useFilters.ts` — filter state + derived `filteredEvents` array
 - `src/app/components/FilterBar.tsx` — horizontal scrollable category chips + date range inputs
@@ -123,6 +129,7 @@ For dev: copy a pre-generated `events.json` into `public/` so Vite serves it.
 ## Step 6: Event Detail
 
 **Files:**
+
 - `src/app/components/EventDetail.tsx` — slide-up modal with full info: image, title, description, venue, date/time, price, category, source, "View Original" link, favourite toggle
 
 **Verify:** tapping EventCard opens detail, links work.
@@ -130,6 +137,7 @@ For dev: copy a pre-generated `events.json` into `public/` so Vite serves it.
 ## Step 7: Map View
 
 **Files:**
+
 - `src/app/components/MapView.tsx` — Leaflet map centred on Chelmsford (51.7356, 0.4685), marker clustering, popups with event info, uses same filtered events as list view
 
 Lazy-load with `React.lazy()` to keep initial bundle small. Fix Leaflet marker icons for bundler compatibility.
@@ -139,6 +147,7 @@ Lazy-load with `React.lazy()` to keep initial bundle small. Fix Leaflet marker i
 ## Step 8: Favourites
 
 **Files:**
+
 - `src/app/lib/db.ts` — IndexedDB wrapper using `idb` (getFavouriteIds, addFavourite, removeFavourite, getAllFavourites)
 - `src/app/hooks/useFavourites.ts` — React hook + context for toggle/check
 - `src/app/components/FavouritesView.tsx` — list of saved events, empty state prompt
@@ -148,6 +157,7 @@ Lazy-load with `React.lazy()` to keep initial bundle small. Fix Leaflet marker i
 ## Step 9: PWA Setup
 
 VitePWA config in `vite.config.ts`:
+
 - Precache app shell (JS/CSS/HTML/icons)
 - StaleWhileRevalidate for `/events.json` (1hr max age)
 - CacheFirst for OSM tiles (7-day, max 200)
@@ -160,6 +170,7 @@ Create `public/icons/icon-192.png` and `icon-512.png`.
 ## Step 10: Netlify Function
 
 **File:** `netlify/functions/refresh-events.mts`
+
 - Imports aggregator directly
 - Runs `aggregateEvents()`, serialises dates to ISO strings
 - Returns JSON with `Cache-Control: public, max-age=900` (15min CDN cache)
@@ -235,6 +246,7 @@ cmout/
 ## Design
 
 Dark theme from existing holding page:
+
 - Background: `#1a1a2e`, Cards: `#16213e`, Accent: `#e94560`, Secondary: `#0f3460`
 - Text: `#e0e0e0`, Muted: `#a0a0b8`
 - Mobile-first, CSS modules
