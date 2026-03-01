@@ -17,7 +17,7 @@
 
 - [x] Build EventCard component (title, date/time, venue, category badge, price, image) with unit tests
 - [x] Build EventList component (renders list of EventCards, handles empty state) with unit tests
-- [ ] Build CategoryFilter component (all 11 categories, multi-select) with unit tests
+- [x] Build CategoryFilter component (all 11 categories, multi-select) with unit tests
 - [ ] Build SearchBar component (text search, debounced) with unit tests
 - [ ] Build DateRangeFilter component (today / this week / this month / all) with unit tests
 - [ ] Build EventDetail view/modal (full event info, back navigation) with unit tests
