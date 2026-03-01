@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
+    "build:ui": "vite build",
+    "dev:ui": "vite",
+    "preview:ui": "vite preview",
     "start": "node dist/cli.js",
     "dev": "tsx src/cli.ts",
     "fetch:openactive": "tsx src/cli.ts --source openactive",
@@ -43,6 +46,9 @@
     "rss-parser": "^3.13.0"
   },
   "devDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "vite": "^6.0.0",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.48.0",
     "@testing-library/jest-dom": "^6.0.0",

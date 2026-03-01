@@ -3,14 +3,14 @@
 ## Status
 
 - Planning iterations: 1
-- Build iterations: 0
+- Build iterations: 1
 - Last updated: 2026-03-01
 
 ## Tasks
 
 ### Foundation
 
-- [ ] Add vite.config.ts and scaffold React app entry (src/main.tsx, src/App.tsx, update public/index.html) (spec: event-listing-ui.md)
+- [x] Add vite.config.ts and scaffold React app entry (src/main.tsx, src/App.tsx, update public/index.html) (spec: event-listing-ui.md)
 - [ ] Add static data build step: run aggregators → write public/events.json for frontend consumption (spec: event-listing-ui.md)
 
 ### Event Listing UI (spec: event-listing-ui.md)
