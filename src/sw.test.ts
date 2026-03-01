@@ -32,6 +32,30 @@ describe('src/sw.ts', () => {
     const src = await loadSW();
     expect(src).toContain('ServiceWorkerGlobalScope');
   });
+
+  it('registers a route for events.json', async () => {
+    const src = await loadSW();
+    expect(src).toContain('registerRoute');
+    expect(src).toContain('workbox-routing');
+    expect(src).toContain('events.json');
+  });
+
+  it('uses StaleWhileRevalidate strategy', async () => {
+    const src = await loadSW();
+    expect(src).toContain('StaleWhileRevalidate');
+    expect(src).toContain('workbox-strategies');
+  });
+
+  it('uses a named cache for event data', async () => {
+    const src = await loadSW();
+    expect(src).toContain('events-data');
+  });
+
+  it('uses CacheableResponsePlugin', async () => {
+    const src = await loadSW();
+    expect(src).toContain('CacheableResponsePlugin');
+    expect(src).toContain('workbox-cacheable-response');
+  });
 });
 
 describe('vite.config.ts', () => {

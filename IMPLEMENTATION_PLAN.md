@@ -27,7 +27,7 @@
 
 - [x] Add web app manifest (public/manifest.json): name, icons, theme colour, display standalone
 - [x] Add service worker (src/sw.ts via vite-plugin-pwa or manual): cache app shell on install
-- [ ] Add offline event data strategy: cache events.json in Cache API, serve stale-while-revalidate
+- [x] Add offline event data strategy: cache events.json in Cache API, serve stale-while-revalidate
 - [ ] Add offline indicator UI component (banner shown when navigator.onLine is false)
 - [ ] Add install prompt handling (beforeinstallprompt event, show install button in UI)
 - [ ] Add background sync: re-fetch events.json when connectivity restored
