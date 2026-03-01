@@ -42,6 +42,27 @@ self.addEventListener('push', event => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
+// Notification click handler: when the user taps a notification, focus an existing
+// app window on the event URL or open a new one if none is open.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url: string = event.notification.data?.url ?? '/';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // Focus an existing window showing the same URL if possible
+      for (const client of windowClients) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // No matching window — open a new one
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(url);
+      }
+    })
+  );
+});
+
 // Background sync: re-fetch events.json when connectivity is restored.
 // The client registers the 'sync-events' tag via registration.sync.register()
 // when the 'online' event fires; the browser delivers the sync event here.

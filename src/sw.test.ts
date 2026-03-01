@@ -105,6 +105,38 @@ describe('src/sw.ts', () => {
     expect(src).toContain('data.url');
     expect(src).toContain('data: { url:');
   });
+
+  it('listens for the notificationclick event', async () => {
+    const src = await loadSW();
+    expect(src).toContain("addEventListener('notificationclick'");
+  });
+
+  it('closes the notification on click', async () => {
+    const src = await loadSW();
+    expect(src).toContain('event.notification.close()');
+  });
+
+  it('reads the url from notification data on click', async () => {
+    const src = await loadSW();
+    expect(src).toContain('event.notification.data?.url');
+  });
+
+  it('uses clients.matchAll to find existing windows', async () => {
+    const src = await loadSW();
+    expect(src).toContain('.matchAll(');
+    expect(src).toContain("type: 'window'");
+  });
+
+  it('focuses an existing client window when available', async () => {
+    const src = await loadSW();
+    expect(src).toContain('client.focus()');
+  });
+
+  it('opens a new window when no existing client matches', async () => {
+    const src = await loadSW();
+    expect(src).toContain('clients.openWindow');
+    expect(src).toContain('openWindow(url)');
+  });
 });
 
 describe('vite.config.ts', () => {
