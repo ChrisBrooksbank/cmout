@@ -1,6 +1,9 @@
 node_modules/
 dist/
+build/
 .env
+.env.local
+.env.*.local
 *.log
 
 # Local Netlify folder
@@ -13,3 +16,16 @@ blob-report/
 
 # Coverage
 coverage/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated data
+events-output.json
