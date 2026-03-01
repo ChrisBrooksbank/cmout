@@ -17,6 +17,7 @@
     "fetch:ical": "tsx src/cli.ts --source ical",
     "fetch:dice": "tsx src/cli.ts --source dice",
     "fetch:all": "tsx src/cli.ts --source all",
+    "build:events": "tsx src/build-events.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

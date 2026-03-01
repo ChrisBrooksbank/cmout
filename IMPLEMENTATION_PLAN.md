@@ -11,7 +11,7 @@
 ### Foundation
 
 - [x] Add vite.config.ts and scaffold React app entry (src/main.tsx, src/App.tsx, update public/index.html) (spec: event-listing-ui.md)
-- [ ] Add static data build step: run aggregators → write public/events.json for frontend consumption (spec: event-listing-ui.md)
+- [x] Add static data build step: run aggregators → write public/events.json for frontend consumption (spec: event-listing-ui.md)
 
 ### Event Listing UI (spec: event-listing-ui.md)
 
