@@ -29,6 +29,19 @@ registerRoute(
   })
 );
 
+// Push notification handler: display a notification when a push message is received.
+// The server sends JSON with { title, body, icon, url } fields.
+self.addEventListener('push', event => {
+  const data = event.data?.json() ?? {};
+  const title: string = data.title ?? 'New event in Chelmsford';
+  const options: NotificationOptions = {
+    body: data.body ?? '',
+    icon: data.icon ?? '/icons/icon-192.png',
+    data: { url: data.url ?? '/' },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
 // Background sync: re-fetch events.json when connectivity is restored.
 // The client registers the 'sync-events' tag via registration.sync.register()
 // when the 'online' event fires; the browser delivers the sync event here.

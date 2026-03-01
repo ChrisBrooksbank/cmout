@@ -77,6 +77,34 @@ describe('src/sw.ts', () => {
     expect(src).toContain("caches.open('events-data')");
     expect(src).toContain('cache.put');
   });
+
+  it('listens for the push event', async () => {
+    const src = await loadSW();
+    expect(src).toContain("addEventListener('push'");
+  });
+
+  it('calls showNotification with title and options', async () => {
+    const src = await loadSW();
+    expect(src).toContain('showNotification');
+    expect(src).toContain('event.waitUntil');
+  });
+
+  it('falls back to default title when push data is missing', async () => {
+    const src = await loadSW();
+    expect(src).toContain('New event in Chelmsford');
+  });
+
+  it('includes icon in notification options', async () => {
+    const src = await loadSW();
+    expect(src).toContain('icon');
+    expect(src).toContain('/icons/icon-192.png');
+  });
+
+  it('includes event url in notification data', async () => {
+    const src = await loadSW();
+    expect(src).toContain('data.url');
+    expect(src).toContain('data: { url:');
+  });
 });
 
 describe('vite.config.ts', () => {

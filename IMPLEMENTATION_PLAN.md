@@ -37,7 +37,7 @@
 - [x] Add push permission request UI (button + explanatory text, only shown after user interaction)
 - [x] Add notification preferences UI: category checkboxes + frequency selector (immediate / daily digest)
 - [x] Generate VAPID keys and add server-side subscription store (edge function or serverless endpoint)
-- [ ] Add service worker push event handler: show notification with title, body, icon, event URL
+- [x] Add service worker push event handler: show notification with title, body, icon, event URL
 - [ ] Add notificationclick handler in service worker: focus/open event detail page
 - [ ] Add daily digest scheduler: aggregate new events and send batched push once per day
 
