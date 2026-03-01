@@ -5,6 +5,7 @@ import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
 import EventList from './components/EventList';
+import InstallPrompt from './components/InstallPrompt';
 import OfflineIndicator from './components/OfflineIndicator';
 import SearchBar from './components/SearchBar';
 
@@ -112,6 +113,7 @@ export default function App() {
   return (
     <div className="app">
       <OfflineIndicator />
+      <InstallPrompt />
       <header className="app__header">
         <h1 className="app__title">CmOut</h1>
         <p className="app__subtitle">Chelmsford Events</p>
