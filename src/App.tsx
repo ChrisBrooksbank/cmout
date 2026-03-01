@@ -5,6 +5,7 @@ import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
 import EventList from './components/EventList';
+import OfflineIndicator from './components/OfflineIndicator';
 import SearchBar from './components/SearchBar';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
@@ -110,6 +111,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <OfflineIndicator />
       <header className="app__header">
         <h1 className="app__title">CmOut</h1>
         <p className="app__subtitle">Chelmsford Events</p>
