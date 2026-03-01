@@ -40,6 +40,16 @@ interface SessionSeriesInfo {
   url: string;
 }
 
+const BOOKING_URL = 'https://chelmsfordcitysports.gladstonego.cloud/book';
+
+/** Replace generic council venue pages with the actual booking system URL. */
+function fixSourceUrl(url: string): string {
+  if (/chelmsford\.gov\.uk\/(riverside|csac|swflc|dovedale)/i.test(url)) {
+    return BOOKING_URL;
+  }
+  return url;
+}
+
 function categoriseActivity(name: string): EventCategory {
   const lower = name.toLowerCase();
   if (/swim|aqua|pool|diving/.test(lower)) return 'fitness-class';
@@ -107,7 +117,7 @@ function buildSeriesLookup(items: RpdeItem[]): Map<string, SessionSeriesInfo> {
       longitude: geo?.longitude ?? null,
       category: categoriseActivity((d.name as string) ?? ''),
       price: offers?.[0]?.price != null ? `£${offers[0].price.toFixed(2)}` : null,
-      url: (d.url as string) ?? atId,
+      url: fixSourceUrl((d.url as string) ?? atId),
     });
   }
 
@@ -183,7 +193,7 @@ function parseSessionSeries(item: RpdeItem): CmEvent | null {
       : '',
     category: categoriseActivity(name),
     source: 'openactive',
-    sourceUrl: (d.url as string) ?? (d['@id'] as string) ?? '',
+    sourceUrl: fixSourceUrl((d.url as string) ?? (d['@id'] as string) ?? ''),
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
     imageUrl: null,
@@ -220,7 +230,7 @@ function parseGenericItem(item: RpdeItem): CmEvent | null {
     address: '',
     category: categoriseActivity(name),
     source: 'openactive',
-    sourceUrl: (d.url as string) ?? (d['@id'] as string) ?? '',
+    sourceUrl: fixSourceUrl((d.url as string) ?? (d['@id'] as string) ?? ''),
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
     imageUrl: null,

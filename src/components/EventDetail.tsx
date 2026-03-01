@@ -88,7 +88,9 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
           target="_blank"
           rel="noopener noreferrer"
         >
-          More info / Book tickets
+          {sourceUrl.includes('gladstonego.cloud')
+            ? 'Book at Chelmsford City Sports'
+            : 'More info / Book tickets'}
         </a>
       </div>
     </article>
