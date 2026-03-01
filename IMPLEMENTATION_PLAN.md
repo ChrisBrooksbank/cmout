@@ -34,7 +34,7 @@
 
 ### Push Notifications (spec: push-notifications.md)
 
-- [ ] Add push permission request UI (button + explanatory text, only shown after user interaction)
+- [x] Add push permission request UI (button + explanatory text, only shown after user interaction)
 - [ ] Add notification preferences UI: category checkboxes + frequency selector (immediate / daily digest)
 - [ ] Generate VAPID keys and add server-side subscription store (edge function or serverless endpoint)
 - [ ] Add service worker push event handler: show notification with title, body, icon, event URL

@@ -7,6 +7,7 @@ import EventDetail from './components/EventDetail';
 import EventList from './components/EventList';
 import InstallPrompt from './components/InstallPrompt';
 import OfflineIndicator from './components/OfflineIndicator';
+import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SearchBar from './components/SearchBar';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
@@ -114,6 +115,7 @@ export default function App() {
     <div className="app">
       <OfflineIndicator />
       <InstallPrompt />
+      <PushNotificationPrompt />
       <header className="app__header">
         <h1 className="app__title">CmOut</h1>
         <p className="app__subtitle">Chelmsford Events</p>
