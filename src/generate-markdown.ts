@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { aggregateEvents } from "./aggregator.js";
 
-const result = await aggregateEvents(["openactive"]);
+const result = await aggregateEvents();
 const now = new Date();
 const twoWeeks = new Date();
 twoWeeks.setDate(twoWeeks.getDate() + 14);
@@ -24,9 +24,8 @@ for (const ev of upcoming) {
 }
 
 let md = "# Upcoming Events in Chelmsford\n\n";
-md += `> Data source: OpenActive (Chelmsford City Sports) | Generated: ${now.toLocaleDateString("en-GB")}\n`;
-md += `>\n`;
-md += `> **Note:** This only includes fitness/sports/leisure events from OpenActive. Live music, theatre, and community events will appear once Skiddle, Ents24, and Ticketmaster API keys are added.\n\n`;
+const activeSources = result.rawResults.filter(r => r.events.length > 0).map(r => r.source);
+md += `> Sources: ${activeSources.join(", ")} | Generated: ${now.toLocaleDateString("en-GB")}\n\n`;
 
 for (const [date, events] of byDate) {
   md += `## ${date}\n\n`;
@@ -56,9 +55,12 @@ for (const [date, events] of byDate) {
 md += "---\n\n";
 md += "## Coverage Summary\n\n";
 md += `- **Total events (next 14 days):** ${upcoming.length}\n`;
-md += "- **Sources active:** OpenActive (Chelmsford City Sports)\n";
-md += "- **Sources pending API keys:** Skiddle, Ents24, Ticketmaster\n";
-md += "- **Venues covered:** Riverside Leisure Centre, Chelmsford Sport & Athletics Centre, South Woodham Leisure, Dovedale Sports Centre\n";
-md += "- **Venues NOT yet covered:** Hot Box Live, Chelmsford Theatre, Cramphorn Studio, Hylands Estate, Chelmsford Racecourse\n";
+md += `- **Sources active:** ${activeSources.join(", ")}\n`;
+const pendingSources = result.rawResults.filter(r => r.errors.length > 0 && r.events.length === 0).map(r => r.source);
+if (pendingSources.length > 0) {
+  md += `- **Sources pending:** ${pendingSources.join(", ")}\n`;
+}
+const venueSet = new Set(upcoming.map(e => e.venue));
+md += `- **Venues (${venueSet.size}):** ${[...venueSet].sort().join(", ")}\n`;
 
 process.stdout.write(md);

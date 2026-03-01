@@ -1,8 +1,6 @@
 # Upcoming Events in Chelmsford
 
-> Data source: OpenActive (Chelmsford City Sports) | Generated: 01/03/2026
->
-> **Note:** This only includes fitness/sports/leisure events from OpenActive. Live music, theatre, and community events will appear once Skiddle, Ents24, and Ticketmaster API keys are added.
+> Sources: openactive, skiddle, ticketmaster | Generated: 01/03/2026
 
 ## Monday, 2 March 2026
 
@@ -442,8 +440,7 @@
 
 ## Coverage Summary
 
-- **Total events (next 14 days):** 1002
-- **Sources active:** OpenActive (Chelmsford City Sports)
-- **Sources pending API keys:** Skiddle, Ents24, Ticketmaster
-- **Venues covered:** Riverside Leisure Centre, Chelmsford Sport & Athletics Centre, South Woodham Leisure, Dovedale Sports Centre
-- **Venues NOT yet covered:** Hot Box Live, Chelmsford Theatre, Cramphorn Studio, Hylands Estate, Chelmsford Racecourse
+- **Total events (next 14 days):** 1010
+- **Sources active:** openactive, skiddle, ticketmaster
+- **Sources pending:** ents24, ical
+- **Venues (12):** 44 Moulsham Street, Be At One, Chelmsford City Sports, Chelmsford Sport and Athletics Centre, Chelmsford Theatre, Dovedale Sports Centre, Riverside Leisure Centre, South Woodham Leisure, The  Courtyard, The Courtyard Chelmsford, The Public Hall Witham, Witham Town Football Club
