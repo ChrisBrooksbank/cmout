@@ -1,6 +1,6 @@
 [build]
   command = "npm run build:events && npm run build:ui"
-  publish = "dist"
+  publish = "build"
   functions = "netlify/functions"
 
 [[headers]]
