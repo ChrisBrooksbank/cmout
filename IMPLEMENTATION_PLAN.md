@@ -20,7 +20,7 @@
 - [x] Build CategoryFilter component (all 11 categories, multi-select) with unit tests
 - [x] Build SearchBar component (text search, debounced) with unit tests
 - [x] Build DateRangeFilter component (today / this week / this month / all) with unit tests
-- [ ] Build EventDetail view/modal (full event info, back navigation) with unit tests
+- [x] Build EventDetail view/modal (full event info, back navigation) with unit tests
 - [ ] Wire up App.tsx: fetch events.json, combine filters, render list + filters + loading/error states
 
 ### PWA Offline (spec: pwa-offline.md)
