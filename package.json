@@ -1,0 +1,27 @@
+{
+  "name": "cmout",
+  "version": "0.1.0",
+  "description": "Chelmsford Local Events Aggregator - Data source verification prototype",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/cli.js",
+    "dev": "tsx src/cli.ts",
+    "fetch:openactive": "tsx src/cli.ts --source openactive",
+    "fetch:skiddle": "tsx src/cli.ts --source skiddle",
+    "fetch:ents24": "tsx src/cli.ts --source ents24",
+    "fetch:ticketmaster": "tsx src/cli.ts --source ticketmaster",
+    "fetch:ical": "tsx src/cli.ts --source ical",
+    "fetch:all": "tsx src/cli.ts --source all"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-ical": "^0.18.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
