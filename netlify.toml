@@ -1,0 +1,11 @@
+[build]
+  command = "npm run build:ui"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[headers]]
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "GET, POST, DELETE, OPTIONS"
