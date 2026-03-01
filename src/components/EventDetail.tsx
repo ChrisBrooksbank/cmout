@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import type { CmEvent, EventCategory } from '../types';
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
@@ -33,6 +34,10 @@ interface EventDetailProps {
 }
 
 export default function EventDetail({ event, onBack }: EventDetailProps) {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const {
     title,
     description,
