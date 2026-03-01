@@ -7,6 +7,11 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
 declare const self: ServiceWorkerGlobalScope;
 
+// SyncEvent is part of the Background Sync API — not yet in the TS webworker lib
+interface SyncEvent extends ExtendableEvent {
+  readonly tag: string;
+}
+
 // Take control of all clients immediately when a new SW activates
 clientsClaim();
 
@@ -23,3 +28,22 @@ registerRoute(
     plugins: [new CacheableResponsePlugin({ statuses: [0, 200] })],
   })
 );
+
+// Background sync: re-fetch events.json when connectivity is restored.
+// The client registers the 'sync-events' tag via registration.sync.register()
+// when the 'online' event fires; the browser delivers the sync event here.
+self.addEventListener('sync', event => {
+  const syncEvent = event as SyncEvent;
+  if (syncEvent.tag === 'sync-events') {
+    syncEvent.waitUntil(
+      fetch('/events.json')
+        .then(response => {
+          if (!response.ok) return;
+          return caches.open('events-data').then(cache => cache.put('/events.json', response));
+        })
+        .catch(() => {
+          // Network unavailable — browser will retry the sync automatically
+        })
+    );
+  }
+});

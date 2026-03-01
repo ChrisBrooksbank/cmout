@@ -56,6 +56,27 @@ describe('src/sw.ts', () => {
     expect(src).toContain('CacheableResponsePlugin');
     expect(src).toContain('workbox-cacheable-response');
   });
+
+  it('listens for the sync event', async () => {
+    const src = await loadSW();
+    expect(src).toContain("addEventListener('sync'");
+  });
+
+  it('handles sync-events tag', async () => {
+    const src = await loadSW();
+    expect(src).toContain('sync-events');
+  });
+
+  it('re-fetches events.json on sync', async () => {
+    const src = await loadSW();
+    expect(src).toContain("fetch('/events.json')");
+  });
+
+  it('puts fresh response into events-data cache on sync', async () => {
+    const src = await loadSW();
+    expect(src).toContain("caches.open('events-data')");
+    expect(src).toContain('cache.put');
+  });
 });
 
 describe('vite.config.ts', () => {
@@ -95,5 +116,12 @@ describe('src/main.tsx', () => {
   it('calls registerSW', async () => {
     const src = await loadMain();
     expect(src).toContain('registerSW(');
+  });
+
+  it('listens for online event to register background sync', async () => {
+    const src = await loadMain();
+    expect(src).toContain("addEventListener('online'");
+    expect(src).toContain('navigator.serviceWorker.ready');
+    expect(src).toContain("register('sync-events')");
   });
 });

@@ -30,7 +30,7 @@
 - [x] Add offline event data strategy: cache events.json in Cache API, serve stale-while-revalidate
 - [x] Add offline indicator UI component (banner shown when navigator.onLine is false)
 - [x] Add install prompt handling (beforeinstallprompt event, show install button in UI)
-- [ ] Add background sync: re-fetch events.json when connectivity restored
+- [x] Add background sync: re-fetch events.json when connectivity restored
 
 ### Push Notifications (spec: push-notifications.md)
 
