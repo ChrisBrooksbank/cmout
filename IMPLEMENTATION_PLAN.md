@@ -15,7 +15,7 @@
 
 ### Event Listing UI (spec: event-listing-ui.md)
 
-- [ ] Build EventCard component (title, date/time, venue, category badge, price, image) with unit tests
+- [x] Build EventCard component (title, date/time, venue, category badge, price, image) with unit tests
 - [ ] Build EventList component (renders list of EventCards, handles empty state) with unit tests
 - [ ] Build CategoryFilter component (all 11 categories, multi-select) with unit tests
 - [ ] Build SearchBar component (text search, debounced) with unit tests
