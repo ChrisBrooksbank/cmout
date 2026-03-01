@@ -7,14 +7,14 @@
  * real Web Push endpoint.
  */
 
-import type { CmEvent } from '../types.js';
+import type { CmEvent, EventCategory } from '../types.js';
 import { getSubscriptions, type StoredSubscription } from './subscription-store.js';
 
 export interface DigestEvent {
   id: string;
   title: string;
   startDate: string; // ISO 8601
-  category: string;
+  category: EventCategory;
   url: string;
 }
 
@@ -106,34 +106,31 @@ export async function runDailyDigest(
 
   const dailySubscriptions = getSubscriptions().filter(s => s.frequency === 'daily-digest');
 
-  const results: DigestResult[] = [];
-
-  for (const sub of dailySubscriptions) {
+  const promises = dailySubscriptions.map(async (sub): Promise<DigestResult> => {
     const payload = buildDigest(events, sub, since);
 
     if (payload === null) {
-      results.push({ endpoint: sub.subscription.endpoint, sent: false, eventCount: 0 });
-      continue;
+      return { endpoint: sub.subscription.endpoint, sent: false, eventCount: 0 };
     }
 
     try {
       await sendFn(sub, payload);
-      results.push({
+      return {
         endpoint: sub.subscription.endpoint,
         sent: true,
         eventCount: payload.eventCount,
-      });
+      };
     } catch (err) {
-      results.push({
+      return {
         endpoint: sub.subscription.endpoint,
         sent: false,
         eventCount: payload.eventCount,
         error: err instanceof Error ? err.message : String(err),
-      });
+      };
     }
-  }
+  });
 
-  return results;
+  return Promise.all(promises);
 }
 
 /** Default no-op send function used when no sender is configured. */
