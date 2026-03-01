@@ -89,10 +89,10 @@ export default function App() {
     fetch('/events.json')
       .then(res => {
         if (!res.ok) throw new Error(`Failed to load events (${res.status})`);
-        return res.json() as Promise<RawEvent[]>;
+        return res.json() as Promise<{ events: RawEvent[] }>;
       })
       .then(data => {
-        setEvents(data.map(hydrateEvent));
+        setEvents(data.events.map(hydrateEvent));
         setLoading(false);
       })
       .catch((err: unknown) => {

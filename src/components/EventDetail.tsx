@@ -47,7 +47,7 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
   } = event;
 
   return (
-    <article className="event-detail">
+    <article className="event-detail" data-category={category}>
       <button className="event-detail__back" onClick={onBack} aria-label="Back to events">
         ← Back
       </button>

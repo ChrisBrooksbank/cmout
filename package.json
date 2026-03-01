@@ -1,6 +1,6 @@
 {
   "name": "cmout",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Chelmsford Local Events Aggregator - Data source verification prototype",
   "type": "module",
   "scripts": {
