@@ -1,0 +1,13 @@
+name: Daily Events Update
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger-netlify-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Netlify build hook
+        run: curl -X POST -d '{}' ${{ secrets.NETLIFY_BUILD_HOOK }}
