@@ -9,6 +9,8 @@ const VALID_SOURCES: EventSource[] = [
   'ticketmaster',
   'ical',
   'dice',
+  'wegottickets',
+  'meetup',
 ];
 
 function parseArgs(): { sources?: EventSource[] } {

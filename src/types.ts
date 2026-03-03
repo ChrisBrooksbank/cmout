@@ -35,6 +35,8 @@ export type EventSource =
   | 'ticketmaster'
   | 'ical'
   | 'dice'
+  | 'wegottickets'
+  | 'meetup'
   | 'user-submitted';
 
 export interface FetchResult {

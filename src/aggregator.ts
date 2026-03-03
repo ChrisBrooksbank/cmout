@@ -7,6 +7,8 @@ import {
   ticketmasterFetcher,
   icalFetcher,
   diceFetcher,
+  wegotticketsFetcher,
+  meetupFetcher,
 } from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -15,6 +17,8 @@ const ALL_FETCHERS: Fetcher[] = [
   ents24Fetcher,
   ticketmasterFetcher,
   diceFetcher,
+  wegotticketsFetcher,
+  meetupFetcher,
   icalFetcher,
 ];
 

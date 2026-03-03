@@ -209,7 +209,8 @@ describe('runDailyDigest', () => {
   it('processes daily-digest subscriptions', async () => {
     addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
-    const results = await runDailyDigest([makeEvent()], undefined, send);
+    const since = new Date('2026-03-01T00:00:00Z');
+    const results = await runDailyDigest([makeEvent()], since, send);
     expect(results).toHaveLength(1);
     expect(results[0].sent).toBe(true);
     expect(results[0].eventCount).toBe(1);
@@ -227,7 +228,8 @@ describe('runDailyDigest', () => {
   it('records an error when sendFn throws', async () => {
     addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockRejectedValue(new Error('Network error'));
-    const results = await runDailyDigest([makeEvent()], undefined, send);
+    const since = new Date('2026-03-01T00:00:00Z');
+    const results = await runDailyDigest([makeEvent()], since, send);
     expect(results[0].sent).toBe(false);
     expect(results[0].error).toBe('Network error');
     expect(results[0].eventCount).toBe(1);
@@ -254,11 +256,12 @@ describe('runDailyDigest', () => {
       frequency: 'daily-digest',
     });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
+    const since = new Date('2026-03-01T00:00:00Z');
     const events = [
       makeEvent({ id: 'e1', category: 'live-music' }),
       makeEvent({ id: 'e2', category: 'sport' }),
     ];
-    const results = await runDailyDigest(events, undefined, send);
+    const results = await runDailyDigest(events, since, send);
     expect(results).toHaveLength(2);
     expect(send).toHaveBeenCalledTimes(2);
     expect(results.every(r => r.sent)).toBe(true);
@@ -268,7 +271,8 @@ describe('runDailyDigest', () => {
     const subData = makePushSub('https://push.example.com/ep-test');
     addSubscription(subData, { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
-    await runDailyDigest([makeEvent()], undefined, send);
+    const since = new Date('2026-03-01T00:00:00Z');
+    await runDailyDigest([makeEvent()], since, send);
     const [calledSub, calledPayload] = send.mock.calls[0];
     expect(calledSub.subscription.endpoint).toBe('https://push.example.com/ep-test');
     expect(calledPayload.eventCount).toBe(1);

@@ -67,6 +67,8 @@ const SOURCE_PRIORITY: Record<string, number> = {
   ticketmaster: 4,
   dice: 5,
   ical: 6,
+  wegottickets: 7,
+  meetup: 8,
 };
 
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {

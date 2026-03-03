@@ -4,3 +4,5 @@ export { ents24Fetcher } from './ents24.js';
 export { ticketmasterFetcher } from './ticketmaster.js';
 export { icalFetcher } from './ical.js';
 export { diceFetcher } from './dice.js';
+export { wegotticketsFetcher } from './wegottickets.js';
+export { meetupFetcher } from './meetup.js';
