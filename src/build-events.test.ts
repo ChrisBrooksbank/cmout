@@ -57,7 +57,7 @@ describe('buildEventsJson', () => {
   afterEach(async () => {
     vi.clearAllMocks();
     for (const f of tempFiles.splice(0)) {
-      await rm(f, { force: true });
+      await rm(f, { force: true, recursive: true });
     }
   });
 

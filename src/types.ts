@@ -39,6 +39,7 @@ export type EventSource =
   | 'wegottickets'
   | 'meetup'
   | 'eventbrite'
+  | 'ctw'
   | 'user-submitted';
 
 export interface FetchResult {

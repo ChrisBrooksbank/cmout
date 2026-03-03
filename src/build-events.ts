@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 process.env.TZ = 'Europe/London';
 import 'dotenv/config';
 import { writeFile, mkdir } from 'node:fs/promises';

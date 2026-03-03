@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import type { CmEvent, FetchResult, Fetcher, EventSource } from './types.js';
 import { deduplicateEvents, truncate } from './utils.js';
 import {
@@ -10,6 +11,7 @@ import {
   wegotticketsFetcher,
   meetupFetcher,
   eventbriteFetcher,
+  ctwFetcher,
 } from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -22,6 +24,7 @@ const ALL_FETCHERS: Fetcher[] = [
   meetupFetcher,
   eventbriteFetcher,
   icalFetcher,
+  ctwFetcher,
 ];
 
 export interface AggregateResult {
