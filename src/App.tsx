@@ -5,13 +5,12 @@ import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
 import EventList from './components/EventList';
-import FilterDrawer from './components/FilterDrawer';
+import FilterSection from './components/FilterSection';
 import InstallPrompt from './components/InstallPrompt';
 import ListFilter from './components/ListFilter';
 import OfflineIndicator from './components/OfflineIndicator';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SearchBar from './components/SearchBar';
-import useMediaQuery from './hooks/useMediaQuery';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
   startDate: string;
@@ -151,9 +150,6 @@ export default function App() {
   const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
   const [selectedPromoters, setSelectedPromoters] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     fetch('/events.json')
@@ -209,11 +205,14 @@ export default function App() {
 
   const filteredEvents = filterEvents(events, filterOptions);
 
-  const drawerFilterCount =
+  const totalFilterCount =
     selectedCategories.length + selectedVenues.length + selectedPromoters.length;
 
-  const clearDrawerFilters = () => {
+  const clearAllFilters = () => {
+    setSearchQuery('');
     setSelectedCategories([]);
+    setDateRange('all');
+    setCustomDate('');
     setSelectedVenues([]);
     setSelectedPromoters([]);
   };
@@ -267,35 +266,19 @@ export default function App() {
             customDate={customDate}
             onCustomDateChange={setCustomDate}
           />
-          {isDesktop ? (
-            <>
-              {categoryFilter}
-              {venueFilter}
-              {promoterFilter}
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                className="more-filters-trigger"
-                onClick={() => setDrawerOpen(true)}
-              >
-                More filters
-                {drawerFilterCount > 0 && (
-                  <span className="more-filters-trigger__badge">{drawerFilterCount}</span>
-                )}
-              </button>
-              <FilterDrawer
-                open={drawerOpen}
-                onClose={() => setDrawerOpen(false)}
-                resultCount={filteredEvents.length}
-                onClearAll={clearDrawerFilters}
-              >
-                {categoryFilter}
-                {venueFilter}
-                {promoterFilter}
-              </FilterDrawer>
-            </>
+          <FilterSection label="Categories" activeCount={selectedCategories.length}>
+            {categoryFilter}
+          </FilterSection>
+          <FilterSection label="Venues" activeCount={selectedVenues.length}>
+            {venueFilter}
+          </FilterSection>
+          <FilterSection label="Promoters" activeCount={selectedPromoters.length}>
+            {promoterFilter}
+          </FilterSection>
+          {totalFilterCount > 0 && (
+            <button type="button" className="filter-clear-all" onClick={clearAllFilters}>
+              Clear all filters
+            </button>
           )}
         </aside>
 

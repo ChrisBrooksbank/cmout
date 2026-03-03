@@ -55,15 +55,6 @@ function filters(overrides: Partial<FilterOptions> = {}): FilterOptions {
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
-  // Mock window.matchMedia for jsdom (must be in beforeEach since restoreAllMocks resets it)
-  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
 });
 
 afterEach(() => {
