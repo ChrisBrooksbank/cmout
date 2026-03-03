@@ -31,7 +31,7 @@ function mockFetch(events: CmEvent[]) {
     'fetch',
     vi.fn().mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve(raw),
+      json: () => Promise.resolve({ events: raw }),
     })
   );
 }
@@ -193,6 +193,27 @@ describe('filterEvents', () => {
     const result = filterEvents([todayEvent, futureEvent], '', [], 'today');
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('today');
+  });
+
+  it('today includes spanning events that started before today but end today or later', () => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const spanningEvent = makeEvent({
+      id: 'spanning',
+      startDate: yesterday,
+      endDate: tomorrow,
+    });
+    const pastEvent = makeEvent({
+      id: 'past',
+      startDate: yesterday,
+      endDate: yesterday,
+    });
+    const result = filterEvents([spanningEvent, pastEvent], '', [], 'today');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('spanning');
   });
 
   it('date range all returns everything', () => {

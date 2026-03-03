@@ -30,11 +30,12 @@ function isInDateRange(event: CmEvent, range: DateRange): boolean {
   if (range === 'all') return true;
 
   if (range === 'today') {
-    return (
-      start.getFullYear() === now.getFullYear() &&
-      start.getMonth() === now.getMonth() &&
-      start.getDate() === now.getDate()
-    );
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrowStart = new Date(todayStart);
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    if (start >= todayStart && start < tomorrowStart) return true;
+    if (start < todayStart && event.endDate && event.endDate >= todayStart) return true;
+    return false;
   }
 
   if (range === 'this-week') {
@@ -125,7 +126,11 @@ export default function App() {
         <aside className="app__filters">
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
           <DateRangeFilter selected={dateRange} onChange={setDateRange} />
-          <CategoryFilter selected={selectedCategories} onChange={setSelectedCategories} />
+          <CategoryFilter
+            selected={selectedCategories}
+            onChange={setSelectedCategories}
+            events={events}
+          />
         </aside>
 
         <section className="app__content" aria-label="Events">
