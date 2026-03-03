@@ -1,5 +1,5 @@
 import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
-import { makeEventId, fetchJson, normalisePrice } from '../utils.js';
+import { makeEventId, normalisePrice } from '../utils.js';
 
 const BASE_URL = 'https://api.ents24.com/event/list';
 const AUTH_URL = 'https://api.ents24.com/auth/token';

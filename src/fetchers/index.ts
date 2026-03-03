@@ -7,3 +7,4 @@ export { diceFetcher } from './dice.js';
 export { wegotticketsFetcher } from './wegottickets.js';
 export { meetupFetcher } from './meetup.js';
 export { eventbriteFetcher } from './eventbrite.js';
+export { ctwFetcher } from './ctw.js';

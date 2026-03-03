@@ -73,7 +73,8 @@ const SOURCE_PRIORITY: Record<string, number> = {
   wegottickets: 7,
   meetup: 8,
   eventbrite: 9,
-  'user-submitted': 10,
+  ctw: 10,
+  'user-submitted': 11,
 };
 
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {

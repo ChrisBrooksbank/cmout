@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 process.env.TZ = 'Europe/London';
 import 'dotenv/config';
 import type { EventSource } from './types.js';
