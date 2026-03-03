@@ -1,5 +1,5 @@
 import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
-import { makeEventId } from '../utils.js';
+import { makeEventId, normalisePrice } from '../utils.js';
 
 /**
  * DICE venue page scraper.
@@ -67,7 +67,7 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
 
   const venue = ev.venues[0];
   const priceAmount = ev.price.amount_from ?? ev.price.amount;
-  const price = priceAmount === 0 ? 'Free' : `£${(priceAmount / 100).toFixed(2)}`;
+  const price = normalisePrice(priceAmount / 100);
 
   return {
     id: makeEventId('dice', ev.id),
@@ -75,13 +75,13 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
     description: ev.about?.description?.slice(0, 300) ?? '',
     startDate,
     endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
-    venue: venue?.name ?? 'Hot Box',
-    address: venue?.address ?? '28 Viaduct Rd, Chelmsford CM1 1TS',
+    venue: venue?.name ?? 'Unknown venue',
+    address: venue?.address ?? '',
     category: mapDiceCategory(ev.tags_types ?? []),
     source: 'dice' as CmEvent['source'],
     sourceUrl: `https://dice.fm/event/${ev.perm_name}`,
-    latitude: venue?.location?.lat ?? 51.736,
-    longitude: venue?.location?.lng ?? 0.4672,
+    latitude: venue?.location?.lat ?? null,
+    longitude: venue?.location?.lng ?? null,
     imageUrl: ev.images?.landscape ?? ev.images?.square ?? null,
     price,
   };
@@ -111,7 +111,7 @@ async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]>
     const html = await res.text();
 
     // Extract __NEXT_DATA__ JSON
-    const match = html.match(/__NEXT_DATA__[^>]*>(.*?)<\/script>/);
+    const match = html.match(/__NEXT_DATA__[^>]*>([\s\S]*?)<\/script>/);
     if (!match) {
       errors.push(`DICE page ${url}: no __NEXT_DATA__ found`);
       return events;

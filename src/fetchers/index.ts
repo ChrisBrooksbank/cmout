@@ -6,3 +6,4 @@ export { icalFetcher } from './ical.js';
 export { diceFetcher } from './dice.js';
 export { wegotticketsFetcher } from './wegottickets.js';
 export { meetupFetcher } from './meetup.js';
+export { eventbriteFetcher } from './eventbrite.js';

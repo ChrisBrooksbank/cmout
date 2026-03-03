@@ -1,3 +1,4 @@
+process.env.TZ = 'Europe/London';
 import 'dotenv/config';
 import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';

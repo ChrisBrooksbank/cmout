@@ -45,13 +45,16 @@ export function isDuplicate(a: CmEvent, b: CmEvent): boolean {
   // Exact title match
   if (titleA === titleB) return true;
 
-  // One title contains the other
-  if (titleA.includes(titleB) || titleB.includes(titleA)) {
+  // One title contains the other (only if the shorter title is long enough to be meaningful)
+  const shorterTitle = titleA.length < titleB.length ? titleA : titleB;
+  if (shorterTitle.length >= 10 && (titleA.includes(titleB) || titleB.includes(titleA))) {
     // Also check venue similarity
     const venueA = normalise(a.venue);
     const venueB = normalise(b.venue);
     if (venueA === venueB) return true;
-    if (venueA.includes(venueB) || venueB.includes(venueA)) return true;
+    const shorterVenue = venueA.length < venueB.length ? venueA : venueB;
+    if (shorterVenue.length >= 8 && (venueA.includes(venueB) || venueB.includes(venueA)))
+      return true;
   }
 
   return false;
@@ -69,6 +72,8 @@ const SOURCE_PRIORITY: Record<string, number> = {
   ical: 6,
   wegottickets: 7,
   meetup: 8,
+  eventbrite: 9,
+  'user-submitted': 10,
 };
 
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
@@ -94,6 +99,44 @@ export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
 export function truncate(s: string, maxLen: number): string {
   if (s.length <= maxLen) return s;
   return s.slice(0, maxLen - 1) + '…';
+}
+
+/**
+ * Parse a float, returning null instead of NaN for invalid input.
+ */
+export function safeParseFloat(s: string | undefined | null): number | null {
+  if (s == null) return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+/**
+ * Normalise a price value to a consistent display format.
+ * Returns 'Free', '£X.XX', '£X.XX-£Y.YY', or null.
+ */
+export function normalisePrice(
+  raw: string | number | null | undefined,
+  isFree?: boolean
+): string | null {
+  if (isFree) return 'Free';
+  if (raw == null) return null;
+  if (typeof raw === 'number') return raw === 0 ? 'Free' : `£${raw.toFixed(2)}`;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (/^free$/i.test(trimmed)) return 'Free';
+  const rangeMatch = trimmed.match(/^£?([\d.]+)\s*[-–]\s*£?([\d.]+)$/);
+  if (rangeMatch) {
+    const min = parseFloat(rangeMatch[1]),
+      max = parseFloat(rangeMatch[2]);
+    if (min === 0 && max === 0) return 'Free';
+    return `£${min.toFixed(2)}-£${max.toFixed(2)}`;
+  }
+  const singleMatch = trimmed.match(/^£?([\d.]+)$/);
+  if (singleMatch) {
+    const amount = parseFloat(singleMatch[1]);
+    return amount === 0 ? 'Free' : `£${amount.toFixed(2)}`;
+  }
+  return trimmed;
 }
 
 /**

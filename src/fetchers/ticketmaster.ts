@@ -2,6 +2,8 @@ import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
 import {
   makeEventId,
   fetchJson,
+  safeParseFloat,
+  normalisePrice,
   CHELMSFORD_LAT,
   CHELMSFORD_LNG,
   DEFAULT_RADIUS_MILES,
@@ -58,23 +60,23 @@ function mapTmCategory(classifications: TmEvent['classifications']): EventCatego
   return 'other';
 }
 
-function parseTmEvent(ev: TmEvent): CmEvent {
+function parseTmEvent(ev: TmEvent): CmEvent | null {
   const venue = ev._embedded?.venues?.[0];
   const startDate = new Date(
     `${ev.dates.start.localDate}T${ev.dates.start.localTime ?? '00:00:00'}`
   );
+  if (isNaN(startDate.getTime())) return null;
+
   const endDate = ev.dates.end?.localDate
     ? new Date(`${ev.dates.end.localDate}T${ev.dates.end.localTime ?? '23:59:59'}`)
     : null;
 
   const priceRange = ev.priceRanges?.[0];
-  let price: string | null = null;
-  if (priceRange) {
-    price =
-      priceRange.min === priceRange.max
-        ? `£${priceRange.min.toFixed(2)}`
-        : `£${priceRange.min.toFixed(2)}-£${priceRange.max.toFixed(2)}`;
-  }
+  const price = priceRange
+    ? normalisePrice(
+        priceRange.min === priceRange.max ? priceRange.min : `${priceRange.min}-${priceRange.max}`
+      )
+    : null;
 
   // Pick best image (prefer ~600px wide)
   const image = ev.images?.sort((a, b) => Math.abs(a.width - 600) - Math.abs(b.width - 600))?.[0];
@@ -84,7 +86,7 @@ function parseTmEvent(ev: TmEvent): CmEvent {
     title: ev.name,
     description: ev.info ?? ev.pleaseNote ?? '',
     startDate,
-    endDate,
+    endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
     venue: venue?.name ?? 'Unknown venue',
     address: [venue?.address?.line1, venue?.city?.name, venue?.postalCode]
       .filter(Boolean)
@@ -92,8 +94,8 @@ function parseTmEvent(ev: TmEvent): CmEvent {
     category: mapTmCategory(ev.classifications),
     source: 'ticketmaster',
     sourceUrl: ev.url,
-    latitude: venue?.location ? parseFloat(venue.location.latitude) : null,
-    longitude: venue?.location ? parseFloat(venue.location.longitude) : null,
+    latitude: safeParseFloat(venue?.location?.latitude),
+    longitude: safeParseFloat(venue?.location?.longitude),
     imageUrl: image?.url ?? null,
     price,
   };
@@ -133,7 +135,8 @@ export const ticketmasterFetcher: Fetcher = {
 
       const tmEvents = data._embedded?.events ?? [];
       for (const ev of tmEvents) {
-        events.push(parseTmEvent(ev));
+        const parsed = parseTmEvent(ev);
+        if (parsed) events.push(parsed);
       }
     } catch (err) {
       errors.push(`Ticketmaster fetch error: ${(err as Error).message}`);

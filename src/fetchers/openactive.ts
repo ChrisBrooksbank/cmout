@@ -1,5 +1,5 @@
 import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
-import { makeEventId, fetchJson } from '../utils.js';
+import { makeEventId, fetchJson, normalisePrice } from '../utils.js';
 
 const FEED_BASE = 'https://opendata.leisurecloud.live/api/feeds/ChelmsfordCitySports-live';
 
@@ -116,7 +116,7 @@ function buildSeriesLookup(items: RpdeItem[]): Map<string, SessionSeriesInfo> {
       latitude: geo?.latitude ?? null,
       longitude: geo?.longitude ?? null,
       category: categoriseActivity((d.name as string) ?? ''),
-      price: offers?.[0]?.price != null ? `£${offers[0].price.toFixed(2)}` : null,
+      price: normalisePrice(offers?.[0]?.price),
       url: fixSourceUrl((d.url as string) ?? atId),
     });
   }
@@ -197,7 +197,7 @@ function parseSessionSeries(item: RpdeItem): CmEvent | null {
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
     imageUrl: null,
-    price: offers?.[0]?.price != null ? `£${offers[0].price.toFixed(2)}` : null,
+    price: normalisePrice(offers?.[0]?.price),
   };
 }
 

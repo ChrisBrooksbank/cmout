@@ -1,5 +1,5 @@
 import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
-import { makeEventId, fetchJson } from '../utils.js';
+import { makeEventId, fetchJson, normalisePrice } from '../utils.js';
 
 const BASE_URL = 'https://api.ents24.com/event/list';
 const AUTH_URL = 'https://api.ents24.com/auth/token';
@@ -40,13 +40,18 @@ function mapGenreToCategory(genres: { name: string }[]): EventCategory {
   return 'other';
 }
 
-function parseEnts24Event(ev: Ents24Event): CmEvent {
+function parseEnts24Event(ev: Ents24Event): CmEvent | null {
+  const startDate = new Date(ev.startDate);
+  if (isNaN(startDate.getTime())) return null;
+
+  const endDate = ev.endDate ? new Date(ev.endDate) : null;
+
   return {
     id: makeEventId('ents24', ev.id),
     title: ev.title,
     description: ev.description ?? '',
-    startDate: new Date(ev.startDate),
-    endDate: ev.endDate ? new Date(ev.endDate) : null,
+    startDate,
+    endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
     venue: ev.venue.name,
     address: [ev.venue.town, ev.venue.postcode].filter(Boolean).join(', '),
     category: mapGenreToCategory(ev.genre ?? []),
@@ -55,7 +60,7 @@ function parseEnts24Event(ev: Ents24Event): CmEvent {
     latitude: ev.venue.location?.lat ?? null,
     longitude: ev.venue.location?.lng ?? null,
     imageUrl: ev.image?.[0]?.url ?? null,
-    price: ev.price ?? null,
+    price: normalisePrice(ev.price),
   };
 }
 
@@ -122,7 +127,8 @@ export const ents24Fetcher: Fetcher = {
       const eventList = Array.isArray(data) ? data : (data.data ?? []);
 
       for (const ev of eventList) {
-        events.push(parseEnts24Event(ev));
+        const parsed = parseEnts24Event(ev);
+        if (parsed) events.push(parsed);
       }
     } catch (err) {
       errors.push(`Ents24 fetch error: ${(err as Error).message}`);

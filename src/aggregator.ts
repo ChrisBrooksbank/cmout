@@ -9,6 +9,7 @@ import {
   diceFetcher,
   wegotticketsFetcher,
   meetupFetcher,
+  eventbriteFetcher,
 } from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -19,6 +20,7 @@ const ALL_FETCHERS: Fetcher[] = [
   diceFetcher,
   wegotticketsFetcher,
   meetupFetcher,
+  eventbriteFetcher,
   icalFetcher,
 ];
 
@@ -38,10 +40,20 @@ export async function aggregateEvents(sources?: EventSource[]): Promise<Aggregat
   const fetchResults: FetchResult[] = [];
   const allEvents: CmEvent[] = [];
 
-  for (const result of results) {
+  for (let i = 0; i < results.length; i++) {
+    const result = results[i];
     if (result.status === 'fulfilled') {
       fetchResults.push(result.value);
       allEvents.push(...result.value.events);
+    } else {
+      const name = fetchers[i].name;
+      fetchResults.push({
+        source: name,
+        events: [],
+        errors: [`${name} fetcher crashed: ${result.reason}`],
+        fetchedAt: new Date(),
+        durationMs: 0,
+      });
     }
   }
 
@@ -129,9 +141,10 @@ export function printReport(result: AggregateResult): void {
 
   // Sample events
   console.log('\n--- Sample Events (next 14 days) ---\n');
-  const twoWeeks = new Date();
+  const now = new Date();
+  const twoWeeks = new Date(now);
   twoWeeks.setDate(twoWeeks.getDate() + 14);
-  const upcoming = events.filter(e => e.startDate >= new Date() && e.startDate <= twoWeeks);
+  const upcoming = events.filter(e => e.startDate >= now && e.startDate <= twoWeeks);
 
   const sample = upcoming.slice(0, 20);
   for (const ev of sample) {

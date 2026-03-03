@@ -1,5 +1,5 @@
 import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
-import { makeEventId, CHELMSFORD_LAT, CHELMSFORD_LNG } from '../utils.js';
+import { makeEventId, normalisePrice, CHELMSFORD_LAT, CHELMSFORD_LNG } from '../utils.js';
 
 /**
  * Meetup event fetcher.
@@ -93,8 +93,7 @@ function parseEvent(apolloState: Record<string, unknown>, ev: MeetupEvent): CmEv
     groupName = group?.name ?? '';
   }
 
-  const price =
-    ev.feeSettings && ev.feeSettings.amount ? `£${ev.feeSettings.amount.toFixed(2)}` : 'Free';
+  const price = normalisePrice(ev.feeSettings?.amount) ?? 'Free';
 
   const imageUrl = resolveImageUrl(apolloState, ev.featuredEventPhoto);
 

@@ -2,6 +2,7 @@ import type { CmEvent, FetchResult, Fetcher, EventCategory } from '../types.js';
 import {
   makeEventId,
   fetchJson,
+  normalisePrice,
   CHELMSFORD_LAT,
   CHELMSFORD_LNG,
   DEFAULT_RADIUS_MILES,
@@ -82,7 +83,7 @@ function parseSkiddleEvent(ev: SkiddleEvent): CmEvent {
     latitude: ev.venue.latitude,
     longitude: ev.venue.longitude,
     imageUrl: ev.largeimageurl ?? ev.imageurl ?? null,
-    price: ev.entryprice ? `£${ev.entryprice}` : null,
+    price: normalisePrice(ev.entryprice),
   };
 }
 

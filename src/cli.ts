@@ -1,3 +1,4 @@
+process.env.TZ = 'Europe/London';
 import 'dotenv/config';
 import type { EventSource } from './types.js';
 import { aggregateEvents, printReport } from './aggregator.js';
@@ -11,6 +12,7 @@ const VALID_SOURCES: EventSource[] = [
   'dice',
   'wegottickets',
   'meetup',
+  'eventbrite',
 ];
 
 function parseArgs(): { sources?: EventSource[] } {
