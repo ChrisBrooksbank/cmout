@@ -38,16 +38,20 @@ interface SessionSeriesInfo {
   category: EventCategory;
   price: string | null;
   url: string;
+  activityId: string | null;
 }
 
 const BOOKING_URL = 'https://chelmsfordcitysports.gladstonego.cloud/book';
 
-/** Replace generic council venue pages with the actual booking system URL. */
-function fixSourceUrl(url: string): string {
-  if (/chelmsford\.gov\.uk\/(riverside|csac|swflc|dovedale)/i.test(url)) {
-    return BOOKING_URL;
+/** Build a deep-link booking URL when we have an activity ID, otherwise fall back to generic. */
+function buildBookingUrl(originalUrl: string, activityId: string | null): string {
+  if (!/chelmsford\.gov\.uk\/(riverside|csac|swflc|dovedale)/i.test(originalUrl)) {
+    return originalUrl;
   }
-  return url;
+  if (activityId) {
+    return `${BOOKING_URL}/calendar/${activityId}`;
+  }
+  return BOOKING_URL;
 }
 
 function categoriseActivity(name: string): EventCategory {
@@ -104,6 +108,8 @@ function buildSeriesLookup(items: RpdeItem[]): Map<string, SessionSeriesInfo> {
 
     const offers = d.offers as Array<{ price?: number }> | undefined;
 
+    const activityId = (d.identifier as string) ?? null;
+
     lookup.set(atId, {
       name: (d.name as string) ?? 'Unknown Activity',
       description: (d.description as string) ?? (d.attendeeInstructions as string) ?? '',
@@ -117,7 +123,8 @@ function buildSeriesLookup(items: RpdeItem[]): Map<string, SessionSeriesInfo> {
       longitude: geo?.longitude ?? null,
       category: categoriseActivity((d.name as string) ?? ''),
       price: normalisePrice(offers?.[0]?.price),
-      url: fixSourceUrl((d.url as string) ?? atId),
+      url: buildBookingUrl((d.url as string) ?? atId, activityId),
+      activityId,
     });
   }
 
@@ -143,6 +150,13 @@ function parseScheduledSession(
 
   const title = series?.name ?? 'Unknown Activity';
 
+  // Deep-link with activityDate so users land on the right day
+  const baseUrl = series?.url ?? BOOKING_URL;
+  const sourceUrl =
+    series?.activityId && startDate
+      ? `${baseUrl}?activityDate=${startDate.toISOString()}`
+      : baseUrl;
+
   return {
     id: makeEventId('openactive', item.id),
     title,
@@ -153,11 +167,12 @@ function parseScheduledSession(
     address: series?.address ?? '',
     category: series?.category ?? 'fitness-class',
     source: 'openactive',
-    sourceUrl: series?.url ?? '',
+    sourceUrl,
     latitude: series?.latitude ?? null,
     longitude: series?.longitude ?? null,
     imageUrl: null,
     price: series?.price ?? null,
+    promoter: null,
   };
 }
 
@@ -193,11 +208,15 @@ function parseSessionSeries(item: RpdeItem): CmEvent | null {
       : '',
     category: categoriseActivity(name),
     source: 'openactive',
-    sourceUrl: fixSourceUrl((d.url as string) ?? (d['@id'] as string) ?? ''),
+    sourceUrl: buildBookingUrl(
+      (d.url as string) ?? (d['@id'] as string) ?? '',
+      (d.identifier as string) ?? null
+    ),
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
     imageUrl: null,
     price: normalisePrice(offers?.[0]?.price),
+    promoter: null,
   };
 }
 
@@ -230,11 +249,12 @@ function parseGenericItem(item: RpdeItem): CmEvent | null {
     address: '',
     category: categoriseActivity(name),
     source: 'openactive',
-    sourceUrl: fixSourceUrl((d.url as string) ?? (d['@id'] as string) ?? ''),
+    sourceUrl: buildBookingUrl((d.url as string) ?? (d['@id'] as string) ?? '', null),
     latitude: geo?.latitude ?? null,
     longitude: geo?.longitude ?? null,
     imageUrl: null,
     price: null,
+    promoter: null,
   };
 }
 
