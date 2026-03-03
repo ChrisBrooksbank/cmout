@@ -8,3 +8,4 @@ export { wegotticketsFetcher } from './wegottickets.js';
 export { meetupFetcher } from './meetup.js';
 export { eventbriteFetcher } from './eventbrite.js';
 export { ctwFetcher } from './ctw.js';
+export { chelmsfordTheatreFetcher } from './chelmsford-theatre.js';

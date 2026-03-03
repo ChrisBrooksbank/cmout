@@ -40,6 +40,7 @@ export type EventSource =
   | 'meetup'
   | 'eventbrite'
   | 'ctw'
+  | 'chelmsford-theatre'
   | 'user-submitted';
 
 export interface FetchResult {

@@ -12,6 +12,7 @@ import {
   meetupFetcher,
   eventbriteFetcher,
   ctwFetcher,
+  chelmsfordTheatreFetcher,
 } from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -25,6 +26,7 @@ const ALL_FETCHERS: Fetcher[] = [
   eventbriteFetcher,
   icalFetcher,
   ctwFetcher,
+  chelmsfordTheatreFetcher,
 ];
 
 export interface AggregateResult {
