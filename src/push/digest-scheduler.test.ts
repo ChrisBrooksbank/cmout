@@ -33,6 +33,7 @@ function makeEvent(overrides: Partial<CmEvent> = {}): CmEvent {
     latitude: null,
     longitude: null,
     imageUrl: null,
+    promoter: null,
     price: null,
     ...overrides,
   };

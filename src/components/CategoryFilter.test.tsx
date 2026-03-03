@@ -13,6 +13,7 @@ const makeEvent = (category: EventCategory): CmEvent => ({
   address: '',
   category,
   source: 'openactive',
+  promoter: null,
   sourceUrl: '',
   latitude: null,
   longitude: null,

@@ -61,6 +61,7 @@ function parseEnts24Event(ev: Ents24Event): CmEvent | null {
     longitude: ev.venue.location?.lng ?? null,
     imageUrl: ev.image?.[0]?.url ?? null,
     price: normalisePrice(ev.price),
+    promoter: null,
   };
 }
 

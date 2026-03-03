@@ -18,6 +18,7 @@ const baseEvent: CmEvent = {
   longitude: 0.469,
   imageUrl: 'https://example.com/image.jpg',
   price: '£10',
+  promoter: null,
 };
 
 describe('EventDetail', () => {

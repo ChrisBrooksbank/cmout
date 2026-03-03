@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { CmEvent, EventCategory } from './types';
 import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
 import EventList from './components/EventList';
+import FilterDrawer from './components/FilterDrawer';
 import InstallPrompt from './components/InstallPrompt';
+import ListFilter from './components/ListFilter';
 import OfflineIndicator from './components/OfflineIndicator';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SearchBar from './components/SearchBar';
+import useMediaQuery from './hooks/useMediaQuery';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
   startDate: string;
@@ -23,7 +26,25 @@ function hydrateEvent(raw: RawEvent): CmEvent {
   };
 }
 
-function isInDateRange(event: CmEvent, range: DateRange): boolean {
+export interface FilterOptions {
+  searchQuery: string;
+  selectedCategories: EventCategory[];
+  dateRange: DateRange;
+  customDate: string;
+  selectedVenues: string[];
+  selectedPromoters: string[];
+}
+
+export const defaultFilters: FilterOptions = {
+  searchQuery: '',
+  selectedCategories: [],
+  dateRange: 'all',
+  customDate: '',
+  selectedVenues: [],
+  selectedPromoters: [],
+};
+
+export function isInDateRange(event: CmEvent, range: DateRange, customDate: string): boolean {
   const now = new Date();
   const start = event.startDate;
 
@@ -35,6 +56,36 @@ function isInDateRange(event: CmEvent, range: DateRange): boolean {
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
     if (start >= todayStart && start < tomorrowStart) return true;
     if (start < todayStart && event.endDate && event.endDate >= todayStart) return true;
+    return false;
+  }
+
+  if (range === 'tomorrow') {
+    const tomorrowStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const dayAfter = new Date(tomorrowStart);
+    dayAfter.setDate(dayAfter.getDate() + 1);
+    if (start >= tomorrowStart && start < dayAfter) return true;
+    if (start < tomorrowStart && event.endDate && event.endDate >= tomorrowStart) return true;
+    return false;
+  }
+
+  if (range === 'this-weekend') {
+    // Friday 17:00 through Sunday 23:59
+    const day = now.getDay(); // 0=Sun .. 6=Sat
+    const daysUntilFriday = day <= 5 ? 5 - day : 6; // If Sun(0), next Fri is +5; Mon-Fri, same week
+    const friday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysUntilFriday);
+    friday.setHours(17, 0, 0, 0);
+    // If it's already the weekend (Sat or Sun), use last Friday
+    if (day === 6) {
+      friday.setDate(friday.getDate() - 1);
+    } else if (day === 0) {
+      friday.setDate(friday.getDate() - 6);
+    }
+    const sundayEnd = new Date(friday);
+    sundayEnd.setDate(friday.getDate() + 2);
+    sundayEnd.setHours(23, 59, 59, 999);
+
+    if (start >= friday && start <= sundayEnd) return true;
+    if (start < friday && event.endDate && event.endDate >= friday) return true;
     return false;
   }
 
@@ -51,16 +102,20 @@ function isInDateRange(event: CmEvent, range: DateRange): boolean {
     return start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth();
   }
 
+  if (range === 'custom' && customDate) {
+    const [year, month, day] = customDate.split('-').map(Number);
+    const dayStart = new Date(year, month - 1, day);
+    const dayEnd = new Date(year, month - 1, day + 1);
+    if (start >= dayStart && start < dayEnd) return true;
+    if (start < dayStart && event.endDate && event.endDate >= dayStart) return true;
+    return false;
+  }
+
   return true;
 }
 
-export function filterEvents(
-  events: CmEvent[],
-  searchQuery: string,
-  selectedCategories: EventCategory[],
-  dateRange: DateRange
-): CmEvent[] {
-  const query = searchQuery.toLowerCase();
+export function filterEvents(events: CmEvent[], options: FilterOptions): CmEvent[] {
+  const query = options.searchQuery.toLowerCase();
   return events.filter(event => {
     const matchesSearch =
       !query ||
@@ -68,11 +123,19 @@ export function filterEvents(
       event.description.toLowerCase().includes(query);
 
     const matchesCategory =
-      selectedCategories.length === 0 || selectedCategories.includes(event.category);
+      options.selectedCategories.length === 0 ||
+      options.selectedCategories.includes(event.category);
 
-    const matchesDate = isInDateRange(event, dateRange);
+    const matchesDate = isInDateRange(event, options.dateRange, options.customDate);
 
-    return matchesSearch && matchesCategory && matchesDate;
+    const matchesVenue =
+      options.selectedVenues.length === 0 || options.selectedVenues.includes(event.venue);
+
+    const matchesPromoter =
+      options.selectedPromoters.length === 0 ||
+      (event.promoter !== null && options.selectedPromoters.includes(event.promoter));
+
+    return matchesSearch && matchesCategory && matchesDate && matchesVenue && matchesPromoter;
   });
 }
 
@@ -84,7 +147,13 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>([]);
   const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [customDate, setCustomDate] = useState('');
+  const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
+  const [selectedPromoters, setSelectedPromoters] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     fetch('/events.json')
@@ -106,11 +175,78 @@ export default function App() {
     setSearchQuery(value);
   }, []);
 
-  const filteredEvents = filterEvents(events, searchQuery, selectedCategories, dateRange);
+  // Derive unique venues/promoters from all events (stable lists)
+  const venueItems = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ev of events) {
+      counts.set(ev.venue, (counts.get(ev.venue) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [events]);
+
+  const promoterItems = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const ev of events) {
+      if (ev.promoter) {
+        counts.set(ev.promoter, (counts.get(ev.promoter) ?? 0) + 1);
+      }
+    }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [events]);
+
+  const filterOptions: FilterOptions = {
+    searchQuery,
+    selectedCategories,
+    dateRange,
+    customDate,
+    selectedVenues,
+    selectedPromoters,
+  };
+
+  const filteredEvents = filterEvents(events, filterOptions);
+
+  const drawerFilterCount =
+    selectedCategories.length + selectedVenues.length + selectedPromoters.length;
+
+  const clearDrawerFilters = () => {
+    setSelectedCategories([]);
+    setSelectedVenues([]);
+    setSelectedPromoters([]);
+  };
 
   if (selectedEvent) {
     return <EventDetail event={selectedEvent} onBack={() => setSelectedEvent(null)} />;
   }
+
+  const categoryFilter = (
+    <CategoryFilter
+      selected={selectedCategories}
+      onChange={setSelectedCategories}
+      events={events}
+    />
+  );
+
+  const venueFilter = (
+    <ListFilter
+      legend="Venues"
+      items={venueItems}
+      selected={selectedVenues}
+      onChange={setSelectedVenues}
+    />
+  );
+
+  const promoterFilter = (
+    <ListFilter
+      legend="Promoters"
+      items={promoterItems}
+      selected={selectedPromoters}
+      onChange={setSelectedPromoters}
+    />
+  );
 
   return (
     <div className="app">
@@ -125,12 +261,42 @@ export default function App() {
       <main className="app__main">
         <aside className="app__filters">
           <SearchBar value={searchQuery} onChange={handleSearchChange} />
-          <DateRangeFilter selected={dateRange} onChange={setDateRange} />
-          <CategoryFilter
-            selected={selectedCategories}
-            onChange={setSelectedCategories}
-            events={events}
+          <DateRangeFilter
+            selected={dateRange}
+            onChange={setDateRange}
+            customDate={customDate}
+            onCustomDateChange={setCustomDate}
           />
+          {isDesktop ? (
+            <>
+              {categoryFilter}
+              {venueFilter}
+              {promoterFilter}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                className="more-filters-trigger"
+                onClick={() => setDrawerOpen(true)}
+              >
+                More filters
+                {drawerFilterCount > 0 && (
+                  <span className="more-filters-trigger__badge">{drawerFilterCount}</span>
+                )}
+              </button>
+              <FilterDrawer
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+                resultCount={filteredEvents.length}
+                onClearAll={clearDrawerFilters}
+              >
+                {categoryFilter}
+                {venueFilter}
+                {promoterFilter}
+              </FilterDrawer>
+            </>
+          )}
         </aside>
 
         <section className="app__content" aria-label="Events">

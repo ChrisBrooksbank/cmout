@@ -90,6 +90,7 @@ function parseEvent(ev: EventbriteEvent): CmEvent | null {
     longitude: safeParseFloat(addr?.longitude),
     imageUrl: ev.image?.url ?? null,
     price,
+    promoter: null,
   };
 }
 

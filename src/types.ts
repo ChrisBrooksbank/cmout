@@ -13,6 +13,7 @@ export interface CmEvent {
   longitude: number | null;
   imageUrl: string | null;
   price: string | null;
+  promoter: string | null;
 }
 
 export type EventCategory =

@@ -84,6 +84,7 @@ function parseSkiddleEvent(ev: SkiddleEvent): CmEvent {
     longitude: ev.venue.longitude,
     imageUrl: ev.largeimageurl ?? ev.imageurl ?? null,
     price: normalisePrice(ev.entryprice),
+    promoter: null,
   };
 }
 

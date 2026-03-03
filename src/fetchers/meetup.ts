@@ -112,6 +112,7 @@ function parseEvent(apolloState: Record<string, unknown>, ev: MeetupEvent): CmEv
     longitude: CHELMSFORD_LNG,
     imageUrl,
     price,
+    promoter: groupName || null,
   };
 }
 

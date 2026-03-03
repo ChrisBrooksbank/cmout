@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
-import App, { filterEvents } from './App';
+
+import App, { filterEvents, isInDateRange, defaultFilters } from './App';
+import type { FilterOptions } from './App';
 import type { CmEvent } from './types';
 
 const makeEvent = (overrides: Partial<CmEvent> = {}): CmEvent => ({
@@ -18,6 +20,7 @@ const makeEvent = (overrides: Partial<CmEvent> = {}): CmEvent => ({
   longitude: 0.469,
   imageUrl: null,
   price: null,
+  promoter: null,
   ...overrides,
 });
 
@@ -46,8 +49,21 @@ function mockFetchError(status = 500) {
   );
 }
 
+function filters(overrides: Partial<FilterOptions> = {}): FilterOptions {
+  return { ...defaultFilters, ...overrides };
+}
+
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
+  // Mock window.matchMedia for jsdom (must be in beforeEach since restoreAllMocks resets it)
+  window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
 });
 
 afterEach(() => {
@@ -127,7 +143,6 @@ describe('App', () => {
     render(<App />);
     expect(screen.getByRole('searchbox')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /filter by date/i })).toBeInTheDocument();
-    expect(screen.getByRole('group', { name: /filter by category/i })).toBeInTheDocument();
   });
 });
 
@@ -144,42 +159,45 @@ describe('filterEvents', () => {
   ];
 
   it('returns all events when no filters applied', () => {
-    expect(filterEvents(events, '', [], 'all')).toHaveLength(3);
+    expect(filterEvents(events, filters())).toHaveLength(3);
   });
 
   it('filters by search query on title', () => {
-    const result = filterEvents(events, 'jazz', [], 'all');
+    const result = filterEvents(events, filters({ searchQuery: 'jazz' }));
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Jazz Concert');
   });
 
   it('filters by search query on description', () => {
-    const result = filterEvents(events, 'fun run', [], 'all');
+    const result = filterEvents(events, filters({ searchQuery: 'fun run' }));
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Community Run');
   });
 
   it('search is case-insensitive', () => {
-    expect(filterEvents(events, 'JAZZ', [], 'all')).toHaveLength(1);
+    expect(filterEvents(events, filters({ searchQuery: 'JAZZ' }))).toHaveLength(1);
   });
 
   it('filters by single category', () => {
-    const result = filterEvents(events, '', ['sport'], 'all');
+    const result = filterEvents(events, filters({ selectedCategories: ['sport'] }));
     expect(result).toHaveLength(1);
     expect(result[0].title).toBe('Community Run');
   });
 
   it('filters by multiple categories', () => {
-    const result = filterEvents(events, '', ['live-music', 'sport'], 'all');
+    const result = filterEvents(events, filters({ selectedCategories: ['live-music', 'sport'] }));
     expect(result).toHaveLength(2);
   });
 
   it('shows all events when selectedCategories is empty', () => {
-    expect(filterEvents(events, '', [], 'all')).toHaveLength(3);
+    expect(filterEvents(events, filters())).toHaveLength(3);
   });
 
   it('combines search and category filters', () => {
-    const result = filterEvents(events, 'jazz', ['sport'], 'all');
+    const result = filterEvents(
+      events,
+      filters({ searchQuery: 'jazz', selectedCategories: ['sport'] })
+    );
     expect(result).toHaveLength(0);
   });
 
@@ -190,7 +208,7 @@ describe('filterEvents', () => {
       id: 'future',
       startDate: new Date('2099-01-01T12:00:00Z'),
     });
-    const result = filterEvents([todayEvent, futureEvent], '', [], 'today');
+    const result = filterEvents([todayEvent, futureEvent], filters({ dateRange: 'today' }));
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('today');
   });
@@ -211,7 +229,7 @@ describe('filterEvents', () => {
       startDate: yesterday,
       endDate: yesterday,
     });
-    const result = filterEvents([spanningEvent, pastEvent], '', [], 'today');
+    const result = filterEvents([spanningEvent, pastEvent], filters({ dateRange: 'today' }));
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('spanning');
   });
@@ -219,6 +237,110 @@ describe('filterEvents', () => {
   it('date range all returns everything', () => {
     const pastEvent = makeEvent({ id: 'past', startDate: new Date('2020-01-01T12:00:00Z') });
     const futureEvent = makeEvent({ id: 'future', startDate: new Date('2099-01-01T12:00:00Z') });
-    expect(filterEvents([pastEvent, futureEvent], '', [], 'all')).toHaveLength(2);
+    expect(filterEvents([pastEvent, futureEvent], filters())).toHaveLength(2);
+  });
+
+  it('filters by venue', () => {
+    const eventsWithVenues = [
+      makeEvent({ id: '1', venue: 'Riverside' }),
+      makeEvent({ id: '2', venue: 'Civic Centre' }),
+      makeEvent({ id: '3', venue: 'Riverside' }),
+    ];
+    const result = filterEvents(eventsWithVenues, filters({ selectedVenues: ['Riverside'] }));
+    expect(result).toHaveLength(2);
+  });
+
+  it('filters by promoter', () => {
+    const eventsWithPromoters = [
+      makeEvent({ id: '1', promoter: 'Live Nation' }),
+      makeEvent({ id: '2', promoter: 'Local Promo' }),
+      makeEvent({ id: '3', promoter: null }),
+    ];
+    const result = filterEvents(
+      eventsWithPromoters,
+      filters({ selectedPromoters: ['Live Nation'] })
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
+  });
+
+  it('excludes null promoter events when promoter filter is active', () => {
+    const eventsWithPromoters = [
+      makeEvent({ id: '1', promoter: null }),
+      makeEvent({ id: '2', promoter: 'Some Promoter' }),
+    ];
+    const result = filterEvents(
+      eventsWithPromoters,
+      filters({ selectedPromoters: ['Some Promoter'] })
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('2');
+  });
+
+  it('combines venue and category filters', () => {
+    const mixed = [
+      makeEvent({ id: '1', venue: 'Riverside', category: 'sport' }),
+      makeEvent({ id: '2', venue: 'Riverside', category: 'live-music' }),
+      makeEvent({ id: '3', venue: 'Civic Centre', category: 'sport' }),
+    ];
+    const result = filterEvents(
+      mixed,
+      filters({ selectedVenues: ['Riverside'], selectedCategories: ['sport'] })
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('1');
+  });
+});
+
+describe('isInDateRange', () => {
+  it('tomorrow returns events starting tomorrow', () => {
+    const now = new Date();
+    const tomorrowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 14, 0);
+    const ev = makeEvent({ startDate: tomorrowDate });
+    expect(isInDateRange(ev, 'tomorrow', '')).toBe(true);
+  });
+
+  it('tomorrow excludes events starting today', () => {
+    const ev = makeEvent({ startDate: new Date() });
+    expect(isInDateRange(ev, 'tomorrow', '')).toBe(false);
+  });
+
+  it('tomorrow includes spanning events covering tomorrow', () => {
+    const now = new Date();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const dayAfterTomorrow = new Date(now);
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    const ev = makeEvent({ startDate: yesterday, endDate: dayAfterTomorrow });
+    expect(isInDateRange(ev, 'tomorrow', '')).toBe(true);
+  });
+
+  it('custom date filters to specific date', () => {
+    const ev = makeEvent({ startDate: new Date('2026-06-15T14:00:00') });
+    expect(isInDateRange(ev, 'custom', '2026-06-15')).toBe(true);
+    expect(isInDateRange(ev, 'custom', '2026-06-16')).toBe(false);
+  });
+
+  it('custom date includes spanning events', () => {
+    const ev = makeEvent({
+      startDate: new Date('2026-06-14T10:00:00'),
+      endDate: new Date('2026-06-16T18:00:00'),
+    });
+    expect(isInDateRange(ev, 'custom', '2026-06-15')).toBe(true);
+  });
+
+  it('this-weekend includes Saturday events', () => {
+    // Set fake time to a Wednesday
+    vi.setSystemTime(new Date('2026-03-04T10:00:00')); // Wednesday
+    const saturday = new Date('2026-03-07T20:00:00');
+    const ev = makeEvent({ startDate: saturday });
+    expect(isInDateRange(ev, 'this-weekend', '')).toBe(true);
+  });
+
+  it('this-weekend excludes Thursday events', () => {
+    vi.setSystemTime(new Date('2026-03-04T10:00:00')); // Wednesday
+    const thursday = new Date('2026-03-05T14:00:00');
+    const ev = makeEvent({ startDate: thursday });
+    expect(isInDateRange(ev, 'this-weekend', '')).toBe(false);
   });
 });

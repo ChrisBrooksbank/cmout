@@ -17,6 +17,7 @@ const makeEvent = (id: string, title: string): CmEvent => ({
   longitude: 0.469,
   imageUrl: null,
   price: null,
+  promoter: null,
 });
 
 describe('EventList', () => {

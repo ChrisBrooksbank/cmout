@@ -99,6 +99,7 @@ function parseEventBlock($: cheerio.CheerioAPI, el: Element): CmEvent | null {
     longitude: coords?.lng ?? null,
     imageUrl,
     price: null,
+    promoter: null,
   };
 }
 

@@ -98,6 +98,7 @@ function parseTmEvent(ev: TmEvent): CmEvent | null {
     longitude: safeParseFloat(venue?.location?.longitude),
     imageUrl: image?.url ?? null,
     price,
+    promoter: null,
   };
 }
 

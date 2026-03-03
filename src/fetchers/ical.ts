@@ -40,6 +40,7 @@ function parseIcalEvent(vevent: ical.VEvent, feedName: string): CmEvent | null {
       : null,
     imageUrl: null,
     price: null,
+    promoter: null,
   };
 }
 

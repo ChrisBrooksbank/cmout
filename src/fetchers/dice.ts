@@ -84,6 +84,7 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
     longitude: venue?.location?.lng ?? null,
     imageUrl: ev.images?.landscape ?? ev.images?.square ?? null,
     price,
+    promoter: null,
   };
 }
 
