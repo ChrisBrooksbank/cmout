@@ -210,6 +210,29 @@ fieldset {
   -webkit-appearance: none;
 }
 
+.search-bar__status {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.search-bar__action {
+  padding: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.search-bar__action:hover {
+  color: var(--accent-hover);
+}
+
 /* ----- Date Range Filter ----- */
 .date-range-filter {
   display: flex;

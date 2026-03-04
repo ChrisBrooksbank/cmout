@@ -68,6 +68,9 @@ describe('App', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /cmout/i })).toBeInTheDocument();
     expect(screen.getByText(/chelmsford events/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
   });
 
   it('shows loading state initially', () => {
@@ -134,6 +137,9 @@ describe('App', () => {
     render(<App />);
     expect(screen.getByRole('searchbox')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: /filter by date/i })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
   });
 });
 

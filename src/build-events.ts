@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CmEvent } from './types.js';
 import { aggregateEvents } from './aggregator.js';
+import { generateEmbeddings } from './embeddings/generate.js';
 
 /** CmEvent with Date fields serialised as ISO strings for JSON consumption */
 export interface SerializedCmEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
@@ -44,10 +45,23 @@ export async function buildEventsJson(outputPath: string = DEFAULT_OUTPUT): Prom
   return output;
 }
 
+const DEFAULT_EMBEDDINGS_OUTPUT = join(process.cwd(), 'public', 'embeddings.json');
+
+export async function buildEmbeddingsJson(
+  events: EventsJson['events'],
+  outputPath: string = DEFAULT_EMBEDDINGS_OUTPUT
+): Promise<void> {
+  await mkdir(dirname(outputPath), { recursive: true });
+  await generateEmbeddings(events, outputPath);
+}
+
 async function main() {
   console.log('Building public/events.json...');
   const output = await buildEventsJson();
   console.log(`Written ${output.totalEvents} events to public/events.json`);
+
+  console.log('Building public/embeddings.json...');
+  await buildEmbeddingsJson(output.events);
 }
 
 // Only run when this file is the entry point

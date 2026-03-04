@@ -29,6 +29,24 @@ registerRoute(
   })
 );
 
+// Cache embeddings.json with the same strategy as events.json
+registerRoute(
+  ({ url }) => url.pathname === '/embeddings.json',
+  new StaleWhileRevalidate({
+    cacheName: 'events-data',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] })],
+  })
+);
+
+// Cache ONNX model files from Hugging Face CDN so semantic search works offline
+registerRoute(
+  ({ url }) => url.hostname === 'cdn-lfs.huggingface.co' || url.hostname === 'huggingface.co',
+  new StaleWhileRevalidate({
+    cacheName: 'ml-models',
+    plugins: [new CacheableResponsePlugin({ statuses: [0, 200] })],
+  })
+);
+
 // Push notification handler: display a notification when a push message is received.
 // The server sends JSON with { title, body, icon, url } fields.
 self.addEventListener('push', event => {

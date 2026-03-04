@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CmEvent, EventCategory } from './types';
+import { semanticSearch } from './search/semantic-search';
+import useSmartSearch from './hooks/useSmartSearch';
 import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
@@ -113,10 +115,26 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
   return true;
 }
 
-export function filterEvents(events: CmEvent[], options: FilterOptions): CmEvent[] {
+/**
+ * Filter events. When semanticResults is provided (from semantic search),
+ * those are used as the candidate set (already in relevance order) instead
+ * of doing substring matching. Other filters still apply on top.
+ */
+export function filterEvents(
+  events: CmEvent[],
+  options: FilterOptions,
+  semanticResults?: CmEvent[]
+): CmEvent[] {
   const query = options.searchQuery.toLowerCase();
-  return events.filter(event => {
+
+  // If semantic results provided, use those as the source (preserving relevance order)
+  const source = semanticResults ?? events;
+
+  return source.filter(event => {
+    // When we have semantic results, the search is already handled.
+    // When we don't, fall back to substring matching.
     const matchesSearch =
+      semanticResults != null ||
       !query ||
       event.title.toLowerCase().includes(query) ||
       event.description.toLowerCase().includes(query);
@@ -151,14 +169,19 @@ export default function App() {
   const [selectedPromoters, setSelectedPromoters] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
 
+  const { phase, embeddings, modelReady, onQueryStart, acceptSmartSearch, declineSmartSearch } =
+    useSmartSearch();
+  const [semanticResults, setSemanticResults] = useState<CmEvent[] | undefined>(undefined);
+  const prevQueryRef = useRef('');
+
   useEffect(() => {
     fetch('/events.json')
       .then(res => {
         if (!res.ok) throw new Error(`Failed to load events (${res.status})`);
         return res.json() as Promise<{ events: RawEvent[] }>;
       })
-      .then(data => {
-        setEvents(data.events.map(hydrateEvent));
+      .then(eventsData => {
+        setEvents(eventsData.events.map(hydrateEvent));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -167,9 +190,34 @@ export default function App() {
       });
   }, []);
 
-  const handleSearchChange = useCallback((value: string) => {
-    setSearchQuery(value);
-  }, []);
+  // Run semantic search when query changes and model is ready
+  useEffect(() => {
+    if (!searchQuery || !modelReady || !embeddings) {
+      setSemanticResults(undefined);
+      return;
+    }
+
+    let cancelled = false;
+    semanticSearch(searchQuery, embeddings, events).then(results => {
+      if (!cancelled) setSemanticResults(results);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchQuery, modelReady, embeddings, events]);
+
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      const wasEmpty = prevQueryRef.current === '';
+      prevQueryRef.current = value;
+      setSearchQuery(value);
+      if (wasEmpty && value) {
+        onQueryStart();
+      }
+    },
+    [onQueryStart]
+  );
 
   // Derive unique venues/promoters from all events (stable lists)
   const venueItems = useMemo(() => {
@@ -203,7 +251,11 @@ export default function App() {
     selectedPromoters,
   };
 
-  const filteredEvents = filterEvents(events, filterOptions);
+  const filteredEvents = filterEvents(
+    events,
+    filterOptions,
+    searchQuery && modelReady ? semanticResults : undefined
+  );
 
   const totalFilterCount =
     selectedCategories.length + selectedVenues.length + selectedPromoters.length;
@@ -259,7 +311,13 @@ export default function App() {
 
       <main className="app__main">
         <aside className="app__filters">
-          <SearchBar value={searchQuery} onChange={handleSearchChange} />
+          <SearchBar
+            value={searchQuery}
+            onChange={handleSearchChange}
+            smartSearchPhase={phase}
+            onAcceptSmartSearch={acceptSmartSearch}
+            onDeclineSmartSearch={declineSmartSearch}
+          />
           <DateRangeFilter
             selected={dateRange}
             onChange={setDateRange}
