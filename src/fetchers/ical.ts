@@ -9,6 +9,14 @@ const DEFAULT_FEEDS: { name: string; url: string }[] = [
   // { name: "Essex Libraries", url: "https://essexlibraries.libcal.com/ical_subscribe.php?..." },
 ];
 
+/** Extract the string value from a node-ical ParameterValue (which may be a plain string or { val, params }). */
+function pv(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value && typeof value === 'object' && 'val' in value)
+    return String((value as { val: unknown }).val);
+  return '';
+}
+
 function parseIcalEvent(vevent: ical.VEvent, feedName: string): CmEvent | null {
   if (!vevent.start) return null;
 
@@ -21,17 +29,19 @@ function parseIcalEvent(vevent: ical.VEvent, feedName: string): CmEvent | null {
       : new Date(vevent.end)
     : null;
 
+  const location = pv(vevent.location);
+
   return {
-    id: makeEventId('ical', vevent.uid ?? `${feedName}-${startDate.toISOString()}`),
-    title: vevent.summary ?? 'Untitled Event',
-    description: vevent.description ?? '',
+    id: makeEventId('ical', pv(vevent.uid) || `${feedName}-${startDate.toISOString()}`),
+    title: pv(vevent.summary) || 'Untitled Event',
+    description: pv(vevent.description),
     startDate,
     endDate: endDate && !isNaN(endDate.getTime()) ? endDate : null,
-    venue: vevent.location ?? feedName,
-    address: vevent.location ?? '',
+    venue: location || feedName,
+    address: location,
     category: 'community', // iCal events default to community
     source: 'ical',
-    sourceUrl: typeof vevent.url === 'string' ? vevent.url : '',
+    sourceUrl: typeof vevent.url === 'string' ? vevent.url : pv(vevent.url),
     latitude: (vevent as unknown as Record<string, unknown>).geo
       ? ((vevent as unknown as Record<string, unknown>).geo as { lat: number }).lat
       : null,
@@ -52,7 +62,7 @@ async function fetchIcalFeed(name: string, url: string, errors: string[]): Promi
     const now = new Date();
 
     for (const [, component] of Object.entries(data)) {
-      if (component.type !== 'VEVENT') continue;
+      if (!component || component.type !== 'VEVENT') continue;
       const vevent = component as ical.VEvent;
 
       // Only include future events (or events happening today)
