@@ -1,6 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
 
-export interface VapidKeys {
+interface VapidKeys {
   publicKey: string;
   privateKey: string;
 }

@@ -22,7 +22,7 @@ export function makeEventId(source: string, ...parts: string[]): string {
 /**
  * Normalise a string for fuzzy comparison (lowercase, strip punctuation, collapse whitespace).
  */
-export function normalise(s: string): string {
+function normalise(s: string): string {
   return s
     .toLowerCase()
     .replace(/[^\w\s]/g, '')
@@ -34,7 +34,7 @@ export function normalise(s: string): string {
  * Check if two events are likely duplicates.
  * Matches on normalised title similarity + same date + similar venue.
  */
-export function isDuplicate(a: CmEvent, b: CmEvent): boolean {
+function isDuplicate(a: CmEvent, b: CmEvent): boolean {
   // Must be on the same day
   const sameDay = a.startDate.toDateString() === b.startDate.toDateString();
   if (!sameDay) return false;

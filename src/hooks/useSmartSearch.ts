@@ -26,7 +26,7 @@ function setStoredPref(pref: 'enabled' | 'disabled') {
   }
 }
 
-export interface UseSmartSearchReturn {
+interface UseSmartSearchReturn {
   phase: SmartSearchPhase;
   embeddings: Embeddings | null;
   modelReady: boolean;

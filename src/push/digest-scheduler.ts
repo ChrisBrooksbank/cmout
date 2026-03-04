@@ -25,7 +25,7 @@ export interface DigestPayload {
   events: DigestEvent[];
 }
 
-export interface DigestResult {
+interface DigestResult {
   endpoint: string;
   sent: boolean;
   eventCount: number;

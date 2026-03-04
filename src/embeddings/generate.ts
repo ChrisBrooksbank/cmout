@@ -3,7 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { pipeline } from '@huggingface/transformers';
 import type { SerializedCmEvent } from '../build-events.js';
 
-export interface EmbeddingsJson {
+interface EmbeddingsJson {
   eventIds: string[];
   vectors: number[][];
 }

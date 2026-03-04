@@ -1,4 +1,11 @@
 {
-  "entry": ["src/cli.ts", "src/app/main.tsx"],
-  "project": ["src/**/*.{ts,tsx}"]
+  "entry": ["src/sw.ts", "src/generate-markdown.ts"],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": [
+    "workbox-core",
+    "workbox-precaching",
+    "workbox-routing",
+    "workbox-strategies",
+    "workbox-cacheable-response"
+  ]
 }

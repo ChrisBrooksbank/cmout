@@ -47,8 +47,7 @@
     "@huggingface/transformers": "^3.8.1",
     "cheerio": "^1.2.0",
     "dotenv": "^16.4.7",
-    "node-ical": "^0.18.0",
-    "rss-parser": "^3.13.0"
+    "node-ical": "^0.18.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
@@ -60,6 +59,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-v8": "^2.0.0",
+    "domhandler": "^5.0.3",
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^10.0.0",
     "eslint-plugin-react": "^7.0.0",

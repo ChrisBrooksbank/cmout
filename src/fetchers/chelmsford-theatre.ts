@@ -49,7 +49,7 @@ async function fetchPage(url: string): Promise<string> {
   }
 }
 
-export interface ListingItem {
+interface ListingItem {
   slug: string;
   url: string;
 }

@@ -10,7 +10,7 @@ declare global {
   }
 }
 
-export type ConnectionQuality = 'fast' | 'slow' | 'unknown';
+type ConnectionQuality = 'fast' | 'slow' | 'unknown';
 
 /** Detect whether the current connection is fast, slow, or unknown. */
 export function getConnectionQuality(): ConnectionQuality {

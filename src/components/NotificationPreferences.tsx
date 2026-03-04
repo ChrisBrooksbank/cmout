@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 
 import type { EventCategory } from '../types';
 
-export type NotificationFrequency = 'immediate' | 'daily-digest';
+type NotificationFrequency = 'immediate' | 'daily-digest';
 
-export interface NotificationPrefs {
+interface NotificationPrefs {
   categories: EventCategory[];
   frequency: NotificationFrequency;
 }

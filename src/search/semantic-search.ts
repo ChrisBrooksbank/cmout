@@ -35,12 +35,12 @@ export async function initModel(): Promise<void> {
 }
 
 /** Returns true if the model is loaded and ready */
-export function isModelReady(): boolean {
+function isModelReady(): boolean {
   return extractor !== null;
 }
 
 /** Embed a query string. Model must be loaded first via initModel(). */
-export async function embedQuery(text: string): Promise<Float32Array> {
+async function embedQuery(text: string): Promise<Float32Array> {
   if (!extractor) throw new Error('Model not loaded — call initModel() first');
   const output = await extractor(text, { pooling: 'mean', normalize: true });
   const nested = output.tolist();
