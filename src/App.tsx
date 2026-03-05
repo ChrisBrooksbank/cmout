@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { CmEvent, EventCategory } from './types';
 import { semanticSearch } from './search/semantic-search';
+import useAppSettings from './hooks/useAppSettings';
 import useSmartSearch from './hooks/useSmartSearch';
 import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
@@ -13,6 +14,7 @@ import ListFilter from './components/ListFilter';
 import OfflineIndicator from './components/OfflineIndicator';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SearchBar from './components/SearchBar';
+import SettingsModal from './components/SettingsModal';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
   startDate: string;
@@ -169,6 +171,9 @@ export default function App() {
   const [selectedPromoters, setSelectedPromoters] = useState<string[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const { settings, setTheme, setFontSize } = useAppSettings();
   const { phase, embeddings, modelReady, onQueryStart, acceptSmartSearch, declineSmartSearch } =
     useSmartSearch();
   const [semanticResults, setSemanticResults] = useState<CmEvent[] | undefined>(undefined);
@@ -304,9 +309,29 @@ export default function App() {
       <OfflineIndicator />
       <InstallPrompt />
       <PushNotificationPrompt />
+      {settingsOpen && (
+        <SettingsModal
+          phase={phase}
+          onAcceptSmartSearch={acceptSmartSearch}
+          onDeclineSmartSearch={declineSmartSearch}
+          onClose={() => setSettingsOpen(false)}
+          theme={settings.theme}
+          onSetTheme={setTheme}
+          fontSize={settings.fontSize}
+          onSetFontSize={setFontSize}
+        />
+      )}
       <header className="app__header">
         <h1 className="app__title">CmOut</h1>
         <p className="app__subtitle">Chelmsford Events</p>
+        <button
+          type="button"
+          className="app__settings-btn"
+          onClick={() => setSettingsOpen(true)}
+          aria-label="Open settings"
+        >
+          ⚙
+        </button>
       </header>
 
       <main className="app__main">

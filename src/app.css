@@ -26,6 +26,8 @@
   --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.4);
   --shadow-glow: 0 0 16px rgba(233, 69, 96, 0.25);
   --transition: 180ms ease;
+  --title-gradient: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+  color-scheme: dark;
 
   /* Category colors */
   --cat-live-music: #e94560;
@@ -39,6 +41,43 @@
   --cat-kids: #ec4899;
   --cat-pub-bar: #eab308;
   --cat-other: #6b7280;
+}
+
+/* ----- Light Theme ----- */
+html[data-theme='light'] {
+  --bg-deep: #f4f4f8;
+  --bg-mid: #ebebf2;
+  --bg-light: #dcdcec;
+  --surface: #ffffff;
+  --surface-hover: #f8f8fc;
+  --surface-input: #f0f0f8;
+  --text: #1a1a2e;
+  --text-muted: #56566e;
+  --text-very-muted: #9090a8;
+  --border: rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.12);
+  --title-gradient: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: light) {
+  html:not([data-theme]) {
+    --bg-deep: #f4f4f8;
+    --bg-mid: #ebebf2;
+    --bg-light: #dcdcec;
+    --surface: #ffffff;
+    --surface-hover: #f8f8fc;
+    --surface-input: #f0f0f8;
+    --text: #1a1a2e;
+    --text-muted: #56566e;
+    --text-very-muted: #9090a8;
+    --border: rgba(0, 0, 0, 0.1);
+    --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-lift: 0 6px 20px rgba(0, 0, 0, 0.12);
+    --title-gradient: linear-gradient(135deg, var(--text) 30%, var(--accent) 100%);
+    color-scheme: light;
+  }
 }
 
 /* ----- Reset & Base ----- */
@@ -125,7 +164,7 @@ fieldset {
   font-size: 1.75rem;
   font-weight: 700;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #fff 30%, var(--accent) 100%);
+  background: var(--title-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -909,7 +948,6 @@ fieldset {
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  color-scheme: dark;
   transition:
     border-color var(--transition),
     box-shadow var(--transition);
@@ -1152,5 +1190,316 @@ fieldset {
   .date-range-filter__label:has(.date-range-filter__radio:checked),
   .category-filter__label:has(.category-filter__checkbox:checked) {
     forced-color-adjust: none;
+  }
+}
+
+/* ----- Settings Button ----- */
+.app__header {
+  position: relative;
+}
+
+.app__settings-btn {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  transition:
+    color var(--transition),
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.app__settings-btn:hover {
+  color: var(--text);
+  border-color: var(--text-very-muted);
+  background: var(--surface);
+}
+
+/* ----- Settings Modal ----- */
+.settings-modal {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 200;
+}
+
+.settings-modal[open] {
+  display: flex;
+}
+
+.settings-modal::backdrop {
+  display: none;
+}
+
+.settings-modal__panel {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90dvh;
+  overflow-y: auto;
+  background: var(--bg-mid);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: 20px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: slideUp 240ms ease both;
+}
+
+@media (min-width: 640px) {
+  .settings-modal {
+    align-items: center;
+  }
+
+  .settings-modal__panel {
+    border-radius: var(--radius-lg);
+    max-height: 80dvh;
+  }
+}
+
+.settings-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-modal__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.settings-modal__close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  color: var(--text-muted);
+  transition:
+    color var(--transition),
+    background var(--transition);
+}
+
+.settings-modal__close:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.settings-modal__section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.settings-modal__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.settings-modal__section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.settings-modal__section-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 340px;
+}
+
+/* ----- Segmented Button ----- */
+.settings-segment {
+  display: flex;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.settings-segment__btn {
+  flex: 1;
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--border);
+  color: var(--text-muted);
+  transition:
+    background var(--transition),
+    color var(--transition);
+  white-space: nowrap;
+}
+
+.settings-segment__btn:first-child {
+  border-left: none;
+}
+
+.settings-segment__btn:hover:not(.settings-segment__btn--active) {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.settings-segment__btn--active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Font size buttons use variable font sizes set inline */
+.settings-segment--font .settings-segment__btn {
+  font-weight: 700;
+  padding: 5px 14px;
+}
+
+/* ----- Settings Toggle ----- */
+.settings-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.settings-toggle--disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-toggle__track {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: var(--surface-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+  display: block;
+}
+
+.settings-toggle--on .settings-toggle__track {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.settings-toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: var(--text-very-muted);
+  border-radius: 50%;
+  transition:
+    transform var(--transition),
+    background var(--transition);
+  display: block;
+}
+
+.settings-toggle--on .settings-toggle__thumb {
+  transform: translateX(18px);
+  background: #fff;
+}
+
+.settings-toggle__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.settings-toggle--on .settings-toggle__label {
+  color: var(--accent);
+}
+
+/* ----- Notification Prefs inside modal ----- */
+.notification-prefs {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
+
+.notification-prefs__heading {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.notification-prefs__legend {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.notification-prefs__categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.notification-prefs__frequency {
+  display: flex;
+  gap: 16px;
+}
+
+.notification-prefs__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.notification-prefs__checkbox,
+.notification-prefs__radio {
+  accent-color: var(--accent);
+}
+
+/* ----- Slide-up animation ----- */
+@keyframes slideUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }

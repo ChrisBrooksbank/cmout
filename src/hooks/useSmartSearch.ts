@@ -96,8 +96,13 @@ export default function useSmartSearch(): UseSmartSearchReturn {
   }, [phase, loadSmartSearch]);
 
   const acceptSmartSearch = useCallback(() => {
-    loadSmartSearch();
-  }, [loadSmartSearch]);
+    if (modelReady) {
+      setStoredPref('enabled');
+      setPhase('ready');
+    } else {
+      loadSmartSearch();
+    }
+  }, [modelReady, loadSmartSearch]);
 
   const declineSmartSearch = useCallback(() => {
     setStoredPref('disabled');
