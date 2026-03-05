@@ -12,6 +12,8 @@ interface SyncEvent extends ExtendableEvent {
   readonly tag: string;
 }
 
+// Skip waiting so a newly installed SW activates immediately (don't wait for tabs to close)
+self.skipWaiting();
 // Take control of all clients immediately when a new SW activates
 clientsClaim();
 
