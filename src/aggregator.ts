@@ -13,6 +13,8 @@ import {
   eventbriteFetcher,
   ctwFetcher,
   chelmsfordTheatreFetcher,
+  outsavvyFetcher,
+  seeticketsFetcher,
 } from './fetchers/index.js';
 
 const ALL_FETCHERS: Fetcher[] = [
@@ -27,6 +29,8 @@ const ALL_FETCHERS: Fetcher[] = [
   icalFetcher,
   ctwFetcher,
   chelmsfordTheatreFetcher,
+  outsavvyFetcher,
+  seeticketsFetcher,
 ];
 
 export interface AggregateResult {

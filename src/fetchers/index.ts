@@ -9,3 +9,5 @@ export { meetupFetcher } from './meetup.js';
 export { eventbriteFetcher } from './eventbrite.js';
 export { ctwFetcher } from './ctw.js';
 export { chelmsfordTheatreFetcher } from './chelmsford-theatre.js';
+export { outsavvyFetcher } from './outsavvy.js';
+export { seeticketsFetcher } from './seetickets.js';

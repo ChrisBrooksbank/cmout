@@ -16,6 +16,8 @@ const VALID_SOURCES: EventSource[] = [
   'eventbrite',
   'ctw',
   'chelmsford-theatre',
+  'outsavvy',
+  'seetickets',
 ];
 
 function parseArgs(): { sources?: EventSource[] } {

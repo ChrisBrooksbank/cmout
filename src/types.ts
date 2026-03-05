@@ -41,6 +41,8 @@ export type EventSource =
   | 'eventbrite'
   | 'ctw'
   | 'chelmsford-theatre'
+  | 'outsavvy'
+  | 'seetickets'
   | 'user-submitted';
 
 export interface FetchResult {

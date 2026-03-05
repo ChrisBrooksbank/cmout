@@ -75,7 +75,9 @@ const SOURCE_PRIORITY: Record<string, number> = {
   eventbrite: 9,
   ctw: 10,
   'chelmsford-theatre': 11,
-  'user-submitted': 12,
+  outsavvy: 12,
+  seetickets: 13,
+  'user-submitted': 14,
 };
 
 export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
