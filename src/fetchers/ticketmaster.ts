@@ -120,6 +120,8 @@ export const ticketmasterFetcher: Fetcher = {
       };
     }
 
+    const MAX_PAGES = 10;
+
     try {
       const params = new URLSearchParams({
         apikey: apiKey,
@@ -131,13 +133,21 @@ export const ticketmasterFetcher: Fetcher = {
         sort: 'date,asc',
       });
 
-      const url = `${BASE_URL}?${params}`;
-      const data = await fetchJson<TmResponse>(url);
+      let pageNum = 0;
+      let totalPages = 1;
 
-      const tmEvents = data._embedded?.events ?? [];
-      for (const ev of tmEvents) {
-        const parsed = parseTmEvent(ev);
-        if (parsed) events.push(parsed);
+      while (pageNum < totalPages && pageNum < MAX_PAGES) {
+        params.set('page', String(pageNum));
+        const data = await fetchJson<TmResponse>(`${BASE_URL}?${params}`);
+
+        const tmEvents = data._embedded?.events ?? [];
+        for (const ev of tmEvents) {
+          const parsed = parseTmEvent(ev);
+          if (parsed) events.push(parsed);
+        }
+
+        totalPages = data.page?.totalPages ?? 1;
+        pageNum++;
       }
     } catch (err) {
       errors.push(`Ticketmaster fetch error: ${(err as Error).message}`);

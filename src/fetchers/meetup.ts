@@ -7,6 +7,8 @@ import { makeEventId, normalisePrice, CHELMSFORD_LAT, CHELMSFORD_LNG } from '../
  * No API key required — public page.
  */
 
+// NOTE: Only fetches first page (~20-30 events). Meetup pagination requires GraphQL cursors
+// not available in SSR HTML. Full coverage needs Meetup API access.
 const SEARCH_URL =
   'https://www.meetup.com/find/?source=EVENTS&location=gb--e4--Chelmsford&distance=fiveMiles';
 

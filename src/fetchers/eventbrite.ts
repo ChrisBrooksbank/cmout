@@ -101,76 +101,72 @@ export const eventbriteFetcher: Fetcher = {
     const errors: string[] = [];
     const events: CmEvent[] = [];
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const MAX_PAGES = 10;
+
     try {
-      const res = await fetch(SEARCH_URL, {
-        headers: {
-          'User-Agent': 'CmOut/0.1 (Chelmsford Events Aggregator)',
-          Accept: 'text/html',
-        },
-        signal: controller.signal,
-      });
+      for (let pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+        const url = pageNum === 1 ? SEARCH_URL : `${SEARCH_URL}?page=${pageNum}`;
 
-      if (!res.ok) {
-        errors.push(`Eventbrite: HTTP ${res.status}`);
-        return {
-          source: 'eventbrite',
-          events,
-          errors,
-          fetchedAt: new Date(),
-          durationMs: Date.now() - start,
-        };
-      }
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        let html = '';
 
-      const html = await res.text();
+        try {
+          const res = await fetch(url, {
+            headers: {
+              'User-Agent': 'CmOut/0.1 (Chelmsford Events Aggregator)',
+              Accept: 'text/html',
+            },
+            signal: controller.signal,
+          });
 
-      // Extract window.__SERVER_DATA__ JSON by finding the assignment and the closing </script> tag
-      const marker = 'window.__SERVER_DATA__ = ';
-      const startIdx = html.indexOf(marker);
-      if (startIdx === -1) {
-        errors.push('Eventbrite: no __SERVER_DATA__ found in page');
-        return {
-          source: 'eventbrite',
-          events,
-          errors,
-          fetchedAt: new Date(),
-          durationMs: Date.now() - start,
-        };
-      }
-      const jsonStart = startIdx + marker.length;
-      const scriptEnd = html.indexOf('</script>', jsonStart);
-      if (scriptEnd === -1) {
-        errors.push('Eventbrite: no closing </script> after __SERVER_DATA__');
-        return {
-          source: 'eventbrite',
-          events,
-          errors,
-          fetchedAt: new Date(),
-          durationMs: Date.now() - start,
-        };
-      }
-      // Trim trailing semicolons/whitespace before parsing
-      const jsonStr = html.slice(jsonStart, scriptEnd).replace(/;\s*$/, '');
+          if (!res.ok) {
+            clearTimeout(timer);
+            errors.push(`Eventbrite: HTTP ${res.status} on page ${pageNum}`);
+            break;
+          }
 
-      const serverData = JSON.parse(jsonStr);
+          html = await res.text();
+          clearTimeout(timer);
+        } catch (err) {
+          clearTimeout(timer);
+          throw err;
+        }
 
-      // Navigate to events array - try known paths
-      const results: EventbriteEvent[] =
-        serverData?.search_data?.events?.results ?? serverData?.jsonld_data?.events ?? [];
+        // Extract window.__SERVER_DATA__ JSON by finding the assignment and the closing </script> tag
+        const marker = 'window.__SERVER_DATA__ = ';
+        const startIdx = html.indexOf(marker);
+        if (startIdx === -1) {
+          if (pageNum === 1) errors.push('Eventbrite: no __SERVER_DATA__ found in page');
+          break;
+        }
+        const jsonStart = startIdx + marker.length;
+        const scriptEnd = html.indexOf('</script>', jsonStart);
+        if (scriptEnd === -1) {
+          if (pageNum === 1) errors.push('Eventbrite: no closing </script> after __SERVER_DATA__');
+          break;
+        }
+        // Trim trailing semicolons/whitespace before parsing
+        const jsonStr = html.slice(jsonStart, scriptEnd).replace(/;\s*$/, '');
 
-      if (results.length === 0) {
-        errors.push('Eventbrite: no events found in __SERVER_DATA__');
-      }
+        const serverData = JSON.parse(jsonStr);
 
-      for (const ev of results) {
-        const parsed = parseEvent(ev);
-        if (parsed) events.push(parsed);
+        // Navigate to events array - try known paths
+        const results: EventbriteEvent[] =
+          serverData?.search_data?.events?.results ?? serverData?.jsonld_data?.events ?? [];
+
+        if (results.length === 0) {
+          if (pageNum === 1) errors.push('Eventbrite: no events found in __SERVER_DATA__');
+          break;
+        }
+
+        for (const ev of results) {
+          const parsed = parseEvent(ev);
+          if (parsed) events.push(parsed);
+        }
       }
     } catch (err) {
       errors.push(`Eventbrite fetch error: ${(err as Error).message}`);
-    } finally {
-      clearTimeout(timer);
     }
 
     return {

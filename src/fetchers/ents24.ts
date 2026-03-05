@@ -104,32 +104,44 @@ export const ents24Fetcher: Fetcher = {
       };
     }
 
+    const MAX_PAGES = 10;
+    const RESULTS_PER_PAGE = 50;
+
     try {
       const token = await getAccessToken(clientId, clientSecret);
 
       const params = new URLSearchParams({
         location: 'name:Chelmsford',
-        results_per_page: '50',
+        results_per_page: String(RESULTS_PER_PAGE),
         incl_image: 'true',
       });
 
-      const url = `${BASE_URL}?${params}`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      let page = 1;
 
-      if (!res.ok) {
-        throw new Error(`Ents24 API: HTTP ${res.status}`);
-      }
+      while (page <= MAX_PAGES) {
+        params.set('page', String(page));
+        const res = await fetch(`${BASE_URL}?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      const data = (await res.json()) as Ents24Event[] | Ents24ListResponse;
-      const eventList = Array.isArray(data) ? data : (data.data ?? []);
+        if (!res.ok) {
+          // 404 on page > 1 means we've passed the last page; treat as end of results
+          if (res.status === 404 && page > 1) break;
+          throw new Error(`Ents24 API: HTTP ${res.status}`);
+        }
 
-      for (const ev of eventList) {
-        const parsed = parseEnts24Event(ev);
-        if (parsed) events.push(parsed);
+        const data = (await res.json()) as Ents24Event[] | Ents24ListResponse;
+        const eventList = Array.isArray(data) ? data : (data.data ?? []);
+
+        if (eventList.length === 0) break;
+
+        for (const ev of eventList) {
+          const parsed = parseEnts24Event(ev);
+          if (parsed) events.push(parsed);
+        }
+
+        page++;
+        if (eventList.length < RESULTS_PER_PAGE) break;
       }
     } catch (err) {
       errors.push(`Ents24 fetch error: ${(err as Error).message}`);

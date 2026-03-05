@@ -106,25 +106,41 @@ export const skiddleFetcher: Fetcher = {
       };
     }
 
+    const MAX_PAGES = 10;
+    const LIMIT = 100;
+
     try {
       const params = new URLSearchParams({
         api_key: apiKey,
         latitude: String(CHELMSFORD_LAT),
         longitude: String(CHELMSFORD_LNG),
         radius: String(DEFAULT_RADIUS_MILES),
-        limit: '100',
-        offset: '0',
+        limit: String(LIMIT),
       });
 
-      const url = `${BASE_URL}?${params}`;
-      const data = await fetchJson<SkiddleResponse>(url);
+      let offset = 0;
+      let totalPages = 1;
+      let page = 0;
 
-      if (data.error) {
-        errors.push(`Skiddle API error: ${data.errormessage}`);
-      } else {
-        for (const ev of data.results ?? []) {
+      while (page < totalPages && page < MAX_PAGES) {
+        params.set('offset', String(offset));
+        const data = await fetchJson<SkiddleResponse>(`${BASE_URL}?${params}`);
+
+        if (data.error) {
+          errors.push(`Skiddle API error: ${data.errormessage}`);
+          break;
+        }
+
+        const results = data.results ?? [];
+        for (const ev of results) {
           events.push(parseSkiddleEvent(ev));
         }
+
+        totalPages = parseInt(data.pagecount, 10) || 1;
+        offset += LIMIT;
+        page++;
+
+        if (results.length < LIMIT) break;
       }
     } catch (err) {
       errors.push(`Skiddle fetch error: ${(err as Error).message}`);
