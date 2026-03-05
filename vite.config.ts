@@ -13,6 +13,10 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'autoUpdate',
       manifest: false, // manifest.json is hand-authored in public/
+      injectManifest: {
+        // Exclude large WASM files (e.g. from @huggingface/transformers) from precache
+        globIgnores: ['**/*.wasm'],
+      },
     }),
   ],
   publicDir: 'public',
