@@ -79,9 +79,9 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     friday.setHours(17, 0, 0, 0);
     // If it's already the weekend (Sat or Sun), use last Friday
     if (day === 6) {
-      friday.setDate(friday.getDate() - 1);
+      friday.setDate(friday.getDate() - 7);
     } else if (day === 0) {
-      friday.setDate(friday.getDate() - 6);
+      friday.setDate(friday.getDate() - 7);
     }
     const sundayEnd = new Date(friday);
     sundayEnd.setDate(friday.getDate() + 2);
@@ -98,7 +98,9 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     startOfWeek.setDate(now.getDate() - now.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
-    return start >= startOfWeek && start < endOfWeek;
+    if (start >= startOfWeek && start < endOfWeek) return true;
+    if (start < startOfWeek && event.endDate && event.endDate >= startOfWeek) return true;
+    return false;
   }
 
   if (range === 'this-month') {

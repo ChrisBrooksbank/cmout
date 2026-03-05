@@ -37,19 +37,19 @@ function mockFetchFailure() {
   vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('Network error')));
 }
 
-beforeEach(() => {
-  localStorage.clear();
-  mockGetConnectionQuality.mockReturnValue('fast');
-  mockOnConnectionChange.mockReturnValue(() => {});
-  mockInitModel.mockResolvedValue(undefined);
-  mockFetchSuccess();
-});
-
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 describe('useSmartSearch', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    mockGetConnectionQuality.mockReturnValue('fast');
+    mockOnConnectionChange.mockReturnValue(() => {});
+    mockInitModel.mockResolvedValue(undefined);
+    mockFetchSuccess();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it('starts in idle phase', () => {
     const { result } = renderHook(() => useSmartSearch());
     expect(result.current.phase).toBe('idle');
