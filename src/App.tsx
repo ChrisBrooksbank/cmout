@@ -57,8 +57,11 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-    if (start >= todayStart && start < tomorrowStart) return true;
-    if (start < todayStart && event.endDate && event.endDate >= todayStart) return true;
+    if (start >= todayStart && start < tomorrowStart) {
+      if (event.endDate && event.endDate < now) return false;
+      return true;
+    }
+    if (start < todayStart && event.endDate && event.endDate >= now) return true;
     return false;
   }
 

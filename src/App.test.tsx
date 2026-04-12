@@ -199,8 +199,8 @@ describe('filterEvents', () => {
   });
 
   it('filters by today date range', () => {
-    const today = new Date();
-    const todayEvent = makeEvent({ id: 'today', startDate: today });
+    const soon = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now, still today
+    const todayEvent = makeEvent({ id: 'today', startDate: soon });
     const futureEvent = makeEvent({
       id: 'future',
       startDate: new Date('2099-01-01T12:00:00Z'),
@@ -208,6 +208,18 @@ describe('filterEvents', () => {
     const result = filterEvents([todayEvent, futureEvent], filters({ dateRange: 'today' }));
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('today');
+  });
+
+  it('today excludes events that started today but have already ended', () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const completedEvent = makeEvent({
+      id: 'completed',
+      startDate: twoHoursAgo,
+      endDate: oneHourAgo,
+    });
+    const result = filterEvents([completedEvent], filters({ dateRange: 'today' }));
+    expect(result).toHaveLength(0);
   });
 
   it('today includes spanning events that started before today but end today or later', () => {
