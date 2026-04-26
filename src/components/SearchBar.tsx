@@ -66,6 +66,14 @@ export default function SearchBar({
           </button>
         </span>
       )}
+      {smartSearchPhase === 'disabled' && (
+        <span className="search-bar__status" aria-live="polite">
+          Smart search off{' '}
+          <button type="button" className="search-bar__action" onClick={onAcceptSmartSearch}>
+            Turn on
+          </button>
+        </span>
+      )}
       {smartSearchPhase === 'error' && (
         <span className="search-bar__status" aria-live="polite">
           Smart search unavailable

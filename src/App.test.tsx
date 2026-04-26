@@ -55,11 +55,13 @@ function filters(overrides: Partial<FilterOptions> = {}): FilterOptions {
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
+  localStorage.clear();
 });
 
 afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
+  localStorage.clear();
 });
 
 describe('App', () => {
@@ -139,6 +141,68 @@ describe('App', () => {
     expect(screen.getByRole('group', { name: /filter by date/i })).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+  });
+
+  it('restores persisted category and date filters', async () => {
+    vi.setSystemTime(new Date('2026-03-04T10:00:00'));
+    localStorage.setItem(
+      'cmout-filter-preferences',
+      JSON.stringify({
+        selectedCategories: ['sport'],
+        dateRange: 'today',
+        customDate: '',
+        selectedVenues: [],
+        selectedPromoters: [],
+      })
+    );
+    mockFetch([
+      makeEvent({
+        id: 'sport-today',
+        title: 'Community Run',
+        category: 'sport',
+        startDate: new Date('2026-03-04T13:00:00'),
+      }),
+      makeEvent({
+        id: 'music-today',
+        title: 'Jazz Night',
+        category: 'live-music',
+        startDate: new Date('2026-03-04T19:00:00'),
+      }),
+      makeEvent({
+        id: 'sport-future',
+        title: 'Future Run',
+        category: 'sport',
+        startDate: new Date('2026-03-06T13:00:00'),
+      }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /community run/i })).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('heading', { name: /jazz night/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /future run/i })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/sport/i)).toBeChecked();
+    expect(screen.getByLabelText(/today/i)).toBeChecked();
+  });
+
+  it('persists category and date filter changes', async () => {
+    mockFetch([makeEvent({ title: 'Community Run', category: 'sport' })]);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/sport/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByLabelText(/sport/i));
+    fireEvent.click(screen.getByLabelText(/today/i));
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('cmout-filter-preferences') ?? '{}');
+      expect(stored.selectedCategories).toEqual(['sport']);
+      expect(stored.dateRange).toBe('today');
     });
   });
 });

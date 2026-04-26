@@ -47,6 +47,89 @@ export const defaultFilters: FilterOptions = {
   selectedPromoters: [],
 };
 
+type PersistedFilterOptions = Omit<FilterOptions, 'searchQuery'>;
+
+const FILTER_STORAGE_KEY = 'cmout-filter-preferences';
+
+const EVENT_CATEGORIES: EventCategory[] = [
+  'live-music',
+  'theatre-comedy',
+  'festival',
+  'fitness-class',
+  'community',
+  'library',
+  'church-faith',
+  'sport',
+  'kids',
+  'pub-bar',
+  'other',
+];
+
+const DATE_RANGES: DateRange[] = [
+  'today',
+  'tomorrow',
+  'this-weekend',
+  'this-week',
+  'this-month',
+  'custom',
+  'all',
+];
+
+const defaultPersistedFilters: PersistedFilterOptions = {
+  selectedCategories: defaultFilters.selectedCategories,
+  dateRange: defaultFilters.dateRange,
+  customDate: defaultFilters.customDate,
+  selectedVenues: defaultFilters.selectedVenues,
+  selectedPromoters: defaultFilters.selectedPromoters,
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function validStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === 'string');
+}
+
+function validCategoryArray(value: unknown): EventCategory[] {
+  return validStringArray(value).filter((item): item is EventCategory =>
+    EVENT_CATEGORIES.includes(item as EventCategory)
+  );
+}
+
+function validDateRange(value: unknown): DateRange {
+  return DATE_RANGES.includes(value as DateRange) ? (value as DateRange) : 'all';
+}
+
+export function loadPersistedFilters(): PersistedFilterOptions {
+  try {
+    const stored = localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!stored) return defaultPersistedFilters;
+
+    const parsed: unknown = JSON.parse(stored);
+    if (!isRecord(parsed)) return defaultPersistedFilters;
+
+    return {
+      selectedCategories: validCategoryArray(parsed.selectedCategories),
+      dateRange: validDateRange(parsed.dateRange),
+      customDate: typeof parsed.customDate === 'string' ? parsed.customDate : '',
+      selectedVenues: validStringArray(parsed.selectedVenues),
+      selectedPromoters: validStringArray(parsed.selectedPromoters),
+    };
+  } catch {
+    return defaultPersistedFilters;
+  }
+}
+
+function savePersistedFilters(filters: PersistedFilterOptions) {
+  try {
+    localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+  } catch {
+    /* ignore */
+  }
+}
+
 export function isInDateRange(event: CmEvent, range: DateRange, customDate: string): boolean {
   const now = new Date();
   const start = event.startDate;
@@ -167,13 +250,18 @@ export default function App() {
   const [events, setEvents] = useState<CmEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initialFilters = useMemo(loadPersistedFilters, []);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>([]);
-  const [dateRange, setDateRange] = useState<DateRange>('all');
-  const [customDate, setCustomDate] = useState('');
-  const [selectedVenues, setSelectedVenues] = useState<string[]>([]);
-  const [selectedPromoters, setSelectedPromoters] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<EventCategory[]>(
+    initialFilters.selectedCategories
+  );
+  const [dateRange, setDateRange] = useState<DateRange>(initialFilters.dateRange);
+  const [customDate, setCustomDate] = useState(initialFilters.customDate);
+  const [selectedVenues, setSelectedVenues] = useState<string[]>(initialFilters.selectedVenues);
+  const [selectedPromoters, setSelectedPromoters] = useState<string[]>(
+    initialFilters.selectedPromoters
+  );
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -199,6 +287,16 @@ export default function App() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    savePersistedFilters({
+      selectedCategories,
+      dateRange,
+      customDate,
+      selectedVenues,
+      selectedPromoters,
+    });
+  }, [selectedCategories, dateRange, customDate, selectedVenues, selectedPromoters]);
 
   // Run semantic search when query changes and model is ready
   useEffect(() => {
@@ -268,7 +366,10 @@ export default function App() {
   );
 
   const totalFilterCount =
-    selectedCategories.length + selectedVenues.length + selectedPromoters.length;
+    selectedCategories.length +
+    selectedVenues.length +
+    selectedPromoters.length +
+    (dateRange === 'all' ? 0 : 1);
 
   const clearAllFilters = () => {
     setSearchQuery('');
