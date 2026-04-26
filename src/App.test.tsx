@@ -286,6 +286,17 @@ describe('filterEvents', () => {
     expect(result).toHaveLength(0);
   });
 
+  it('today excludes events without an end time that started earlier today', () => {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const pastEvent = makeEvent({
+      id: 'past-start',
+      startDate: oneHourAgo,
+      endDate: null,
+    });
+    const result = filterEvents([pastEvent], filters({ dateRange: 'today' }));
+    expect(result).toHaveLength(0);
+  });
+
   it('today includes spanning events that started before today but end today or later', () => {
     const now = new Date();
     const yesterday = new Date(now);

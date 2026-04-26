@@ -141,8 +141,7 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     const tomorrowStart = new Date(todayStart);
     tomorrowStart.setDate(tomorrowStart.getDate() + 1);
     if (start >= todayStart && start < tomorrowStart) {
-      if (event.endDate && event.endDate < now) return false;
-      return true;
+      return event.endDate ? event.endDate >= now : start >= now;
     }
     if (start < todayStart && event.endDate && event.endDate >= now) return true;
     return false;
