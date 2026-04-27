@@ -50,6 +50,5 @@ export default async function handler(request: Request): Promise<Response> {
 }
 
 export const config = {
-  path: '/api/daily-digest',
   schedule: '0 8 * * *',
 };
