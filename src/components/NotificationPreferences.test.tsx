@@ -19,9 +19,31 @@ function mockNotificationPermission(permission: NotificationPermission) {
 
 describe('NotificationPreferences', () => {
   let originalNotification: typeof window.Notification | undefined;
+  let originalPushManager: typeof window.PushManager | undefined;
+  let originalServiceWorker: ServiceWorkerContainer | undefined;
+
+  function mockPushSupport(subscription: PushSubscription | null = null) {
+    const pushManager = {
+      getSubscription: vi.fn().mockResolvedValue(subscription),
+      subscribe: vi.fn(),
+    };
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      writable: true,
+      value: { ready: Promise.resolve({ pushManager }) },
+    });
+  }
 
   beforeEach(() => {
     originalNotification = window.Notification;
+    originalPushManager = window.PushManager;
+    originalServiceWorker = navigator.serviceWorker;
+    mockPushSupport();
     localStorage.clear();
   });
 
@@ -30,6 +52,16 @@ describe('NotificationPreferences', () => {
       configurable: true,
       writable: true,
       value: originalNotification,
+    });
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      writable: true,
+      value: originalPushManager,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      writable: true,
+      value: originalServiceWorker,
     });
     localStorage.clear();
     vi.restoreAllMocks();
@@ -45,16 +77,17 @@ describe('NotificationPreferences', () => {
     expect(screen.queryByRole('region')).not.toBeInTheDocument();
   });
 
-  it('renders nothing when permission is not granted (default)', () => {
+  it('renders preferences with an enable button when permission is default', () => {
     mockNotificationPermission('default');
     render(<NotificationPreferences />);
-    expect(screen.queryByLabelText(/notification preferences/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/notification preferences/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /enable notifications/i })).toBeInTheDocument();
   });
 
-  it('renders nothing when permission is denied', () => {
+  it('shows blocked guidance when permission is denied', () => {
     mockNotificationPermission('denied');
     render(<NotificationPreferences />);
-    expect(screen.queryByLabelText(/notification preferences/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/notification preferences/i)).toHaveTextContent(/blocked/i);
   });
 
   it('renders the preferences panel when permission is granted', () => {
@@ -89,15 +122,13 @@ describe('NotificationPreferences', () => {
   it('shows frequency radio buttons', () => {
     mockNotificationPermission('granted');
     render(<NotificationPreferences />);
-    expect(screen.getByRole('radio', { name: /immediate/i })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: /daily digest/i })).toBeInTheDocument();
   });
 
-  it('defaults to immediate frequency', () => {
+  it('defaults to daily digest frequency', () => {
     mockNotificationPermission('granted');
     render(<NotificationPreferences />);
-    expect(screen.getByRole('radio', { name: /immediate/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /daily digest/i })).not.toBeChecked();
+    expect(screen.getByRole('radio', { name: /daily digest/i })).toBeChecked();
   });
 
   it('starts with no categories selected', () => {
@@ -127,14 +158,6 @@ describe('NotificationPreferences', () => {
     expect(liveMusicCheckbox).not.toBeChecked();
   });
 
-  it('changes frequency to daily digest', () => {
-    mockNotificationPermission('granted');
-    render(<NotificationPreferences />);
-    fireEvent.click(screen.getByRole('radio', { name: /daily digest/i }));
-    expect(screen.getByRole('radio', { name: /daily digest/i })).toBeChecked();
-    expect(screen.getByRole('radio', { name: /immediate/i })).not.toBeChecked();
-  });
-
   it('persists category selection to localStorage', () => {
     mockNotificationPermission('granted');
     render(<NotificationPreferences />);
@@ -143,16 +166,6 @@ describe('NotificationPreferences', () => {
       categories: string[];
     };
     expect(saved.categories).toContain('live-music');
-  });
-
-  it('persists frequency selection to localStorage', () => {
-    mockNotificationPermission('granted');
-    render(<NotificationPreferences />);
-    fireEvent.click(screen.getByRole('radio', { name: /daily digest/i }));
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as {
-      frequency: string;
-    };
-    expect(saved.frequency).toBe('daily-digest');
   });
 
   it('loads previously saved preferences from localStorage', () => {

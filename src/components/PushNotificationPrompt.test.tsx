@@ -8,6 +8,37 @@ function triggerUserInteraction() {
 
 describe('PushNotificationPrompt', () => {
   let originalNotification: typeof window.Notification | undefined;
+  let originalPushManager: typeof window.PushManager | undefined;
+  let originalServiceWorker: ServiceWorkerContainer | undefined;
+
+  function mockPushSupport() {
+    const subscription = {
+      endpoint: 'https://push.example.com/ep-1',
+      toJSON: () => ({ keys: { auth: 'auth', p256dh: 'p256dh' } }),
+      unsubscribe: vi.fn().mockResolvedValue(true),
+    };
+    const pushManager = {
+      getSubscription: vi.fn().mockResolvedValue(null),
+      subscribe: vi.fn().mockResolvedValue(subscription),
+    };
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      writable: true,
+      value: vi.fn(),
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      writable: true,
+      value: { ready: Promise.resolve({ pushManager }) },
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ publicKey: 'AAAA' }),
+      })
+    );
+  }
 
   function mockNotification(permission: NotificationPermission = 'default') {
     const mockRequestPermission = vi.fn().mockResolvedValue(permission);
@@ -27,6 +58,9 @@ describe('PushNotificationPrompt', () => {
 
   beforeEach(() => {
     originalNotification = window.Notification;
+    originalPushManager = window.PushManager;
+    originalServiceWorker = navigator.serviceWorker;
+    mockPushSupport();
   });
 
   afterEach(() => {
@@ -35,7 +69,18 @@ describe('PushNotificationPrompt', () => {
       writable: true,
       value: originalNotification,
     });
+    Object.defineProperty(window, 'PushManager', {
+      configurable: true,
+      writable: true,
+      value: originalPushManager,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      writable: true,
+      value: originalServiceWorker,
+    });
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('renders nothing before any user interaction', () => {

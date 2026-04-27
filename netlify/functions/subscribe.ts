@@ -41,11 +41,18 @@ function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
 }
 
+function publicVapidKey(): string | null {
+  return process.env.VAPID_PUBLIC_KEY ?? null;
+}
+
 export default async function handler(request: Request): Promise<Response> {
   const method = request.method.toUpperCase();
 
   if (method === 'GET') {
-    return jsonResponse({ count: getSubscriptionCount() });
+    return jsonResponse({
+      count: await getSubscriptionCount(),
+      publicKey: publicVapidKey(),
+    });
   }
 
   if (method === 'POST') {
@@ -66,7 +73,7 @@ export default async function handler(request: Request): Promise<Response> {
       return errorResponse('Invalid frequency value', 400);
     }
 
-    const stored = addSubscription(subscription, preferences);
+    const stored = await addSubscription(subscription, preferences);
     return jsonResponse({ ok: true, createdAt: stored.createdAt }, 201);
   }
 
@@ -82,7 +89,7 @@ export default async function handler(request: Request): Promise<Response> {
       return errorResponse('Missing endpoint', 400);
     }
 
-    const removed = removeSubscription(body.endpoint);
+    const removed = await removeSubscription(body.endpoint);
     return jsonResponse({ ok: removed });
   }
 

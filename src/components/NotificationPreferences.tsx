@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 
 import type { EventCategory } from '../types';
-
-type NotificationFrequency = 'immediate' | 'daily-digest';
-
-interface NotificationPrefs {
-  categories: EventCategory[];
-  frequency: NotificationFrequency;
-}
+import {
+  getExistingPushSubscription,
+  notificationSupportAvailable,
+  savePushPreferences,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  type NotificationPrefs,
+} from '../push/browser-subscription';
 
 const STORAGE_KEY = 'cmout-notification-prefs';
 
@@ -29,14 +30,18 @@ const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as EventCategory[];
 
 const DEFAULT_PREFS: NotificationPrefs = {
   categories: [],
-  frequency: 'immediate',
+  frequency: 'daily-digest',
 };
 
-function loadPrefs(): NotificationPrefs {
+export function loadNotificationPrefs(): NotificationPrefs {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored) as NotificationPrefs;
+      const parsed = JSON.parse(stored) as Partial<NotificationPrefs>;
+      return {
+        categories: Array.isArray(parsed.categories) ? parsed.categories : [],
+        frequency: 'daily-digest',
+      };
     }
   } catch {
     // ignore parse errors
@@ -44,7 +49,7 @@ function loadPrefs(): NotificationPrefs {
   return DEFAULT_PREFS;
 }
 
-function savePrefs(prefs: NotificationPrefs): void {
+export function saveNotificationPrefs(prefs: NotificationPrefs): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   } catch {
@@ -57,12 +62,38 @@ export default function NotificationPreferences() {
     if (!('Notification' in window) || !window.Notification) return 'denied';
     return Notification.permission;
   });
-  const [prefs, setPrefs] = useState<NotificationPrefs>(loadPrefs);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(loadNotificationPrefs);
+  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
+  const [status, setStatus] = useState<string>('');
 
   useEffect(() => {
     if (!('Notification' in window) || !window.Notification) return;
     setPermission(Notification.permission);
   }, []);
+
+  useEffect(() => {
+    if (permission !== 'granted' || !notificationSupportAvailable()) return;
+    let cancelled = false;
+    getExistingPushSubscription().then(existing => {
+      if (!cancelled && existing) setSubscription(existing);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [permission]);
+
+  async function persistPrefs(updated: NotificationPrefs) {
+    setPrefs(updated);
+    saveNotificationPrefs(updated);
+    if (subscription) {
+      try {
+        await savePushPreferences(subscription, updated);
+        setStatus('Saved');
+      } catch {
+        setStatus('Saved locally');
+      }
+    }
+  }
 
   function toggleCategory(category: EventCategory) {
     const updated: NotificationPrefs = {
@@ -71,22 +102,64 @@ export default function NotificationPreferences() {
         ? prefs.categories.filter(c => c !== category)
         : [...prefs.categories, category],
     };
-    setPrefs(updated);
-    savePrefs(updated);
+    void persistPrefs(updated);
   }
 
-  function handleFrequencyChange(frequency: NotificationFrequency) {
-    const updated: NotificationPrefs = { ...prefs, frequency };
-    setPrefs(updated);
-    savePrefs(updated);
+  async function handleEnable() {
+    try {
+      const nextPermission =
+        Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
+      setPermission(nextPermission);
+      if (nextPermission !== 'granted') return;
+      const nextSubscription = await subscribeToPushNotifications(prefs);
+      setSubscription(nextSubscription);
+      setStatus('Enabled');
+    } catch {
+      setStatus('Unable to enable notifications');
+    }
   }
 
-  if (!('Notification' in window) || !window.Notification) return null;
-  if (permission !== 'granted') return null;
+  async function handleDisable() {
+    try {
+      await unsubscribeFromPushNotifications();
+      setSubscription(null);
+      setStatus('Disabled');
+    } catch {
+      setStatus('Unable to disable notifications');
+    }
+  }
+
+  if (!notificationSupportAvailable()) return null;
+  if (permission === 'denied') {
+    return (
+      <section className="notification-prefs" aria-label="Notification preferences">
+        <h2 className="notification-prefs__heading">Notification Preferences</h2>
+        <p className="notification-prefs__status">
+          Notifications are blocked in this browser. Update browser settings to enable them.
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section className="notification-prefs" aria-label="Notification preferences">
       <h2 className="notification-prefs__heading">Notification Preferences</h2>
+      <div className="notification-prefs__actions">
+        {permission === 'granted' && subscription ? (
+          <button type="button" className="notification-prefs__button" onClick={handleDisable}>
+            Disable notifications
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="notification-prefs__button"
+            onClick={() => void handleEnable()}
+          >
+            Enable notifications
+          </button>
+        )}
+        {status && <span className="notification-prefs__status">{status}</span>}
+      </div>
 
       <fieldset className="notification-prefs__categories">
         <legend className="notification-prefs__legend">Notify me about</legend>
@@ -110,20 +183,9 @@ export default function NotificationPreferences() {
             type="radio"
             name="notification-frequency"
             className="notification-prefs__radio"
-            value="immediate"
-            checked={prefs.frequency === 'immediate'}
-            onChange={() => handleFrequencyChange('immediate')}
-          />
-          Immediate
-        </label>
-        <label className="notification-prefs__label">
-          <input
-            type="radio"
-            name="notification-frequency"
-            className="notification-prefs__radio"
             value="daily-digest"
-            checked={prefs.frequency === 'daily-digest'}
-            onChange={() => handleFrequencyChange('daily-digest')}
+            checked
+            readOnly
           />
           Daily digest
         </label>

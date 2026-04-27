@@ -45,9 +45,11 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "@netlify/blobs": "^10.7.4",
     "cheerio": "^1.2.0",
     "dotenv": "^16.4.7",
-    "node-ical": "^0.25.4"
+    "node-ical": "^0.25.4",
+    "web-push": "^3.6.7"
   },
   "overrides": {
     "serialize-javascript": "^7.0.4"
@@ -60,6 +62,7 @@
     "@types/node": "^22.13.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^4.0.0",
     "@vitest/coverage-v8": "^4.0.18",
     "domhandler": "^5.0.3",

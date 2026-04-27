@@ -8,6 +8,7 @@ build/
 
 # Local Netlify folder
 .netlify
+netlify/functions/*.zip
 
 # Playwright
 test-results/

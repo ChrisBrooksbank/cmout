@@ -8,7 +8,12 @@
  */
 
 import type { CmEvent, EventCategory } from '../types.js';
-import { getSubscriptions, type StoredSubscription } from './subscription-store.js';
+import {
+  getSubscriptions,
+  removeSubscription,
+  updateLastDigestSentAt,
+  type StoredSubscription,
+} from './subscription-store.js';
 
 export interface DigestEvent {
   id: string;
@@ -35,6 +40,12 @@ interface DigestResult {
 /** Injectable send function — receives the subscription and the digest payload. */
 export type SendFn = (subscription: StoredSubscription, payload: DigestPayload) => Promise<void>;
 
+function isExpiredSubscriptionError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const statusCode = (error as { statusCode?: unknown }).statusCode;
+  return statusCode === 404 || statusCode === 410;
+}
+
 /**
  * Select events from `events` that match the subscriber's category preferences
  * and (optionally) start on or after `sinceDate`.
@@ -45,7 +56,9 @@ export function selectEventsForSubscriber(
   sinceDate?: Date
 ): CmEvent[] {
   return events.filter(event => {
-    if (!subscription.categories.includes(event.category)) return false;
+    if (subscription.categories.length > 0 && !subscription.categories.includes(event.category)) {
+      return false;
+    }
     if (sinceDate !== undefined && event.startDate < sinceDate) return false;
     return true;
   });
@@ -96,17 +109,17 @@ export async function runDailyDigest(
   sinceDate?: Date,
   sendFn: SendFn = noopSend
 ): Promise<DigestResult[]> {
-  const since =
-    sinceDate ??
-    (() => {
-      const d = new Date();
-      d.setHours(0, 0, 0, 0);
-      return d;
-    })();
+  const defaultSince = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
 
-  const dailySubscriptions = getSubscriptions().filter(s => s.frequency === 'daily-digest');
+  const dailySubscriptions = (await getSubscriptions()).filter(s => s.frequency === 'daily-digest');
 
   const promises = dailySubscriptions.map(async (sub): Promise<DigestResult> => {
+    const since =
+      sinceDate ?? (sub.lastDigestSentAt ? new Date(sub.lastDigestSentAt) : defaultSince());
     const payload = buildDigest(events, sub, since);
 
     if (payload === null) {
@@ -115,12 +128,16 @@ export async function runDailyDigest(
 
     try {
       await sendFn(sub, payload);
+      await updateLastDigestSentAt(sub.subscription.endpoint, new Date());
       return {
         endpoint: sub.subscription.endpoint,
         sent: true,
         eventCount: payload.eventCount,
       };
     } catch (err) {
+      if (isExpiredSubscriptionError(err)) {
+        await removeSubscription(sub.subscription.endpoint);
+      }
       return {
         endpoint: sub.subscription.endpoint,
         sent: false,

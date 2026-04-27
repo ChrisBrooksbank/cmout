@@ -9,6 +9,7 @@ import {
 import {
   addSubscription,
   clearSubscriptions,
+  getSubscriptionCount,
   type PushSubscriptionData,
   type StoredSubscription,
 } from './subscription-store.js';
@@ -53,6 +54,8 @@ function makeStoredSub(
     categories,
     frequency,
     createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    lastDigestSentAt: null,
   };
 }
 
@@ -76,6 +79,15 @@ describe('selectEventsForSubscriber', () => {
     const sub = makeStoredSub(['festival']);
     const events = [makeEvent({ category: 'live-music' })];
     expect(selectEventsForSubscriber(events, sub)).toHaveLength(0);
+  });
+
+  it('treats an empty category preference as all categories', () => {
+    const sub = makeStoredSub([]);
+    const events = [
+      makeEvent({ id: 'e1', category: 'live-music' }),
+      makeEvent({ id: 'e2', category: 'community' }),
+    ];
+    expect(selectEventsForSubscriber(events, sub).map(e => e.id)).toEqual(['e1', 'e2']);
   });
 
   it('filters out events starting before sinceDate', () => {
@@ -192,8 +204,8 @@ describe('buildDigest', () => {
 // ---------------------------------------------------------------------------
 
 describe('runDailyDigest', () => {
-  beforeEach(() => {
-    clearSubscriptions();
+  beforeEach(async () => {
+    await clearSubscriptions();
   });
 
   it('returns empty results when no subscriptions exist', async () => {
@@ -202,13 +214,13 @@ describe('runDailyDigest', () => {
   });
 
   it('skips immediate-frequency subscriptions', async () => {
-    addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'immediate' });
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'immediate' });
     const results = await runDailyDigest([makeEvent()]);
     expect(results).toHaveLength(0);
   });
 
   it('processes daily-digest subscriptions', async () => {
-    addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
     const since = new Date('2026-03-01T00:00:00Z');
     const results = await runDailyDigest([makeEvent()], since, send);
@@ -218,7 +230,7 @@ describe('runDailyDigest', () => {
   });
 
   it('does not call sendFn when no events match the subscriber', async () => {
-    addSubscription(makePushSub(), { categories: ['festival'], frequency: 'daily-digest' });
+    await addSubscription(makePushSub(), { categories: ['festival'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
     const results = await runDailyDigest([makeEvent({ category: 'live-music' })], undefined, send);
     expect(send).not.toHaveBeenCalled();
@@ -227,7 +239,7 @@ describe('runDailyDigest', () => {
   });
 
   it('records an error when sendFn throws', async () => {
-    addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockRejectedValue(new Error('Network error'));
     const since = new Date('2026-03-01T00:00:00Z');
     const results = await runDailyDigest([makeEvent()], since, send);
@@ -236,8 +248,16 @@ describe('runDailyDigest', () => {
     expect(results[0].eventCount).toBe(1);
   });
 
+  it('removes expired subscriptions when push delivery returns 410', async () => {
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    const send = vi.fn<SendFn>().mockRejectedValue({ statusCode: 410, message: 'Gone' });
+    const since = new Date('2026-03-01T00:00:00Z');
+    await runDailyDigest([makeEvent()], since, send);
+    await expect(getSubscriptionCount()).resolves.toBe(0);
+  });
+
   it('passes sinceDate to digest builder', async () => {
-    addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
     const since = new Date('2026-03-10T00:00:00Z');
     // Event starts before sinceDate — should be excluded
@@ -248,11 +268,11 @@ describe('runDailyDigest', () => {
   });
 
   it('processes multiple daily-digest subscribers independently', async () => {
-    addSubscription(makePushSub('https://push.example.com/ep-1'), {
+    await addSubscription(makePushSub('https://push.example.com/ep-1'), {
       categories: ['live-music'],
       frequency: 'daily-digest',
     });
-    addSubscription(makePushSub('https://push.example.com/ep-2'), {
+    await addSubscription(makePushSub('https://push.example.com/ep-2'), {
       categories: ['sport'],
       frequency: 'daily-digest',
     });
@@ -270,7 +290,7 @@ describe('runDailyDigest', () => {
 
   it('calls sendFn with the correct subscription and payload', async () => {
     const subData = makePushSub('https://push.example.com/ep-test');
-    addSubscription(subData, { categories: ['live-music'], frequency: 'daily-digest' });
+    await addSubscription(subData, { categories: ['live-music'], frequency: 'daily-digest' });
     const send = vi.fn<SendFn>().mockResolvedValue(undefined);
     const since = new Date('2026-03-01T00:00:00Z');
     await runDailyDigest([makeEvent()], since, send);

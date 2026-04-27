@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 
+import {
+  subscribeToPushNotifications,
+  notificationSupportAvailable,
+} from '../push/browser-subscription';
+import { loadNotificationPrefs } from './NotificationPreferences';
+
 type PermissionState = 'default' | 'granted' | 'denied';
 
 function getNotificationPermission(): PermissionState {
-  if (!('Notification' in window) || !window.Notification) return 'denied';
+  if (!notificationSupportAvailable()) return 'denied';
   return Notification.permission as PermissionState;
 }
 
@@ -13,7 +19,7 @@ export default function PushNotificationPrompt() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!('Notification' in window) || !window.Notification) return;
+    if (!notificationSupportAvailable()) return;
 
     const handleInteraction = () => setHasInteracted(true);
 
@@ -29,16 +35,19 @@ export default function PushNotificationPrompt() {
   }, []);
 
   async function handleEnableClick() {
-    if (!('Notification' in window) || !window.Notification) return;
+    if (!notificationSupportAvailable()) return;
     const result = await Notification.requestPermission();
     setPermission(result as PermissionState);
+    if (result === 'granted') {
+      await subscribeToPushNotifications(loadNotificationPrefs());
+    }
   }
 
   function handleDismiss() {
     setDismissed(true);
   }
 
-  if (!('Notification' in window) || !window.Notification) return null;
+  if (!notificationSupportAvailable()) return null;
   if (!hasInteracted) return null;
   if (permission !== 'default') return null;
   if (dismissed) return null;

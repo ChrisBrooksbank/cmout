@@ -1,13 +1,4 @@
-/**
- * In-memory subscription store for push notifications.
- *
- * NOTE: This is a prototype implementation. The Map is module-level, meaning
- * it persists within a single process but is ephemeral across serverless
- * invocations. In production, replace with a persistent store such as
- * Netlify Blobs, Redis, or a database.
- *
- * Subscriptions are keyed by endpoint URL (unique per browser+device).
- */
+import { getStore } from '@netlify/blobs';
 
 export interface PushSubscriptionKeys {
   auth: string;
@@ -29,37 +20,120 @@ export interface StoredSubscription {
   categories: string[];
   frequency: 'immediate' | 'daily-digest';
   createdAt: string;
+  updatedAt: string;
+  lastDigestSentAt: string | null;
 }
 
 const store = new Map<string, StoredSubscription>();
+const BLOB_STORE_NAME = 'push-subscriptions';
 
-export function addSubscription(
+function hasNetlifyBlobsContext(): boolean {
+  return Boolean(process.env.NETLIFY_BLOBS_CONTEXT || globalThis.netlifyBlobsContext);
+}
+
+function blobKey(endpoint: string): string {
+  return Buffer.from(endpoint).toString('base64url');
+}
+
+function getBlobStore() {
+  return getStore(BLOB_STORE_NAME);
+}
+
+async function readBlobSubscriptions(): Promise<StoredSubscription[]> {
+  const blobs = getBlobStore();
+  const result = await blobs.list();
+  const subscriptions = await Promise.all(
+    result.blobs.map(async blob => blobs.get(blob.key, { type: 'json' }) as Promise<unknown>)
+  );
+
+  return subscriptions.filter(isStoredSubscription);
+}
+
+function isStoredSubscription(value: unknown): value is StoredSubscription {
+  if (typeof value !== 'object' || value === null) return false;
+  const candidate = value as Partial<StoredSubscription>;
+  return (
+    typeof candidate.subscription?.endpoint === 'string' &&
+    typeof candidate.subscription?.keys?.auth === 'string' &&
+    typeof candidate.subscription?.keys?.p256dh === 'string' &&
+    Array.isArray(candidate.categories) &&
+    (candidate.frequency === 'immediate' || candidate.frequency === 'daily-digest') &&
+    typeof candidate.createdAt === 'string'
+  );
+}
+
+export async function addSubscription(
   subscription: PushSubscriptionData,
   preferences: SubscriptionPreferences
-): StoredSubscription {
+): Promise<StoredSubscription> {
+  const existing = hasNetlifyBlobsContext()
+    ? ((await getBlobStore().get(blobKey(subscription.endpoint), {
+        type: 'json',
+      })) as StoredSubscription | null)
+    : store.get(subscription.endpoint);
+  const now = new Date().toISOString();
   const entry: StoredSubscription = {
     subscription,
     categories: preferences.categories,
     frequency: preferences.frequency,
-    createdAt: new Date().toISOString(),
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+    lastDigestSentAt: existing?.lastDigestSentAt ?? null,
   };
-  store.set(subscription.endpoint, entry);
+  if (hasNetlifyBlobsContext()) {
+    await getBlobStore().setJSON(blobKey(subscription.endpoint), entry);
+  } else {
+    store.set(subscription.endpoint, entry);
+  }
   return entry;
 }
 
-export function removeSubscription(endpoint: string): boolean {
+export async function removeSubscription(endpoint: string): Promise<boolean> {
+  if (hasNetlifyBlobsContext()) {
+    const key = blobKey(endpoint);
+    const existing = await getBlobStore().get(key);
+    if (existing === null) return false;
+    await getBlobStore().delete(key);
+    return true;
+  }
   return store.delete(endpoint);
 }
 
-export function getSubscriptions(): StoredSubscription[] {
+export async function getSubscriptions(): Promise<StoredSubscription[]> {
+  if (hasNetlifyBlobsContext()) return readBlobSubscriptions();
   return Array.from(store.values());
 }
 
-export function getSubscriptionCount(): number {
+export async function getSubscriptionCount(): Promise<number> {
+  if (hasNetlifyBlobsContext()) {
+    const result = await getBlobStore().list();
+    return result.blobs.length;
+  }
   return store.size;
 }
 
-/** Clear all subscriptions — intended for testing only. */
-export function clearSubscriptions(): void {
+export async function updateLastDigestSentAt(endpoint: string, sentAt: Date): Promise<void> {
+  const subscriptions = await getSubscriptions();
+  const existing = subscriptions.find(s => s.subscription.endpoint === endpoint);
+  if (!existing) return;
+
+  const updated: StoredSubscription = {
+    ...existing,
+    updatedAt: new Date().toISOString(),
+    lastDigestSentAt: sentAt.toISOString(),
+  };
+
+  if (hasNetlifyBlobsContext()) {
+    await getBlobStore().setJSON(blobKey(endpoint), updated);
+  } else {
+    store.set(endpoint, updated);
+  }
+}
+
+/** Clear all subscriptions - intended for testing only. */
+export async function clearSubscriptions(): Promise<void> {
+  if (hasNetlifyBlobsContext()) {
+    await getBlobStore().deleteAll();
+  }
   store.clear();
 }
