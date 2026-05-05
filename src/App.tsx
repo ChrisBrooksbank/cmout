@@ -183,13 +183,16 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     startOfWeek.setDate(now.getDate() - now.getDay());
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
-    if (start >= startOfWeek && start < endOfWeek) return true;
-    if (start < startOfWeek && event.endDate && event.endDate >= startOfWeek) return true;
+    if (start >= now && start < endOfWeek) return true;
+    if (start < now && event.endDate && event.endDate >= now) return true;
     return false;
   }
 
   if (range === 'this-month') {
-    return start.getFullYear() === now.getFullYear() && start.getMonth() === now.getMonth();
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    if (start >= now && start < endOfMonth) return true;
+    if (start < now && event.endDate && event.endDate >= now) return true;
+    return false;
   }
 
   if (range === 'custom' && customDate) {

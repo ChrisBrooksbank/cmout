@@ -427,4 +427,33 @@ describe('isInDateRange', () => {
     const ev = makeEvent({ startDate: thursday });
     expect(isInDateRange(ev, 'this-weekend', '')).toBe(false);
   });
+
+  it('this-week excludes events earlier this week that have already ended', () => {
+    vi.setSystemTime(new Date('2026-03-04T10:00:00')); // Wednesday
+    const monday = new Date('2026-03-02T20:00:00');
+    const ev = makeEvent({ startDate: monday });
+    expect(isInDateRange(ev, 'this-week', '')).toBe(false);
+  });
+
+  it('this-week includes events still running from earlier this week', () => {
+    vi.setSystemTime(new Date('2026-03-04T10:00:00')); // Wednesday
+    const monday = new Date('2026-03-02T20:00:00');
+    const thursday = new Date('2026-03-05T20:00:00');
+    const ev = makeEvent({ startDate: monday, endDate: thursday });
+    expect(isInDateRange(ev, 'this-week', '')).toBe(true);
+  });
+
+  it('this-month excludes events earlier this month that have already ended', () => {
+    vi.setSystemTime(new Date('2026-03-20T10:00:00'));
+    const earlierThisMonth = new Date('2026-03-04T20:00:00');
+    const ev = makeEvent({ startDate: earlierThisMonth });
+    expect(isInDateRange(ev, 'this-month', '')).toBe(false);
+  });
+
+  it('this-month includes future events later this month', () => {
+    vi.setSystemTime(new Date('2026-03-20T10:00:00'));
+    const laterThisMonth = new Date('2026-03-25T20:00:00');
+    const ev = makeEvent({ startDate: laterThisMonth });
+    expect(isInDateRange(ev, 'this-month', '')).toBe(true);
+  });
 });
