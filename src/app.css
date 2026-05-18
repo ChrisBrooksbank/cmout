@@ -697,6 +697,51 @@ fieldset {
   white-space: pre-wrap;
 }
 
+.event-detail__artist-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 0 2px;
+  border-top: 1px solid var(--border);
+}
+
+.event-detail__artist-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.event-detail__artist-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.event-detail__artist-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.event-detail__artist-link:hover {
+  background: var(--surface-hover);
+  border-color: var(--text-very-muted);
+  text-decoration: none;
+}
+
 .event-detail__source-link {
   display: inline-flex;
   align-items: center;

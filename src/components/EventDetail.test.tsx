@@ -94,6 +94,33 @@ describe('EventDetail', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
+  it('renders artist enrichment links when present', () => {
+    render(
+      <EventDetail
+        event={{
+          ...baseEvent,
+          enrichment: {
+            artistName: 'Summer Jazz',
+            spotifyUrl: 'https://open.spotify.com/artist/summer-jazz',
+            youtubeUrl: 'https://www.youtube.com/channel/summer-jazz',
+            confidence: 'high',
+          },
+        }}
+        onBack={() => {}}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: /summer jazz links/i })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /spotify/i })).toHaveAttribute(
+      'href',
+      'https://open.spotify.com/artist/summer-jazz'
+    );
+    expect(screen.getByRole('link', { name: /youtube/i })).toHaveAttribute(
+      'href',
+      'https://www.youtube.com/channel/summer-jazz'
+    );
+  });
+
   it('renders a back button', () => {
     render(<EventDetail event={baseEvent} onBack={() => {}} />);
     expect(screen.getByRole('button', { name: /back/i })).toBeInTheDocument();

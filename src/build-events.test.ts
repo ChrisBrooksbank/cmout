@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
 import { readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,10 +10,16 @@ vi.mock('./aggregator.js', () => ({
   aggregateEvents: vi.fn(),
 }));
 
+vi.mock('./enrichment.js', () => ({
+  enrichEvents: vi.fn(async (events: CmEvent[]) => events),
+}));
+
 import { aggregateEvents } from './aggregator.js';
+import { enrichEvents } from './enrichment.js';
 import { buildEventsJson } from './build-events.js';
 
 const mockAggregateEvents = vi.mocked(aggregateEvents);
+const mockEnrichEvents = vi.mocked(enrichEvents);
 
 function makeEvent(overrides: Partial<CmEvent> = {}): CmEvent {
   return {
@@ -54,8 +60,12 @@ function tempPath(): string {
 describe('buildEventsJson', () => {
   const tempFiles: string[] = [];
 
+  beforeEach(() => {
+    mockEnrichEvents.mockImplementation(async (events: CmEvent[]) => events);
+  });
+
   afterEach(async () => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     for (const f of tempFiles.splice(0)) {
       await rm(f, { force: true, recursive: true });
     }
@@ -70,6 +80,28 @@ describe('buildEventsJson', () => {
 
     expect(mockAggregateEvents).toHaveBeenCalledOnce();
     expect(mockAggregateEvents).toHaveBeenCalledWith();
+  });
+
+  it('enriches events before serialising', async () => {
+    const event = makeEvent({ category: 'live-music' });
+    mockAggregateEvents.mockResolvedValue(makeAggregateResult([event]));
+    mockEnrichEvents.mockResolvedValue([
+      {
+        ...event,
+        enrichment: {
+          artistName: 'Test Artist',
+          spotifyUrl: 'https://open.spotify.com/artist/test',
+          confidence: 'high',
+        },
+      },
+    ]);
+    const out = tempPath();
+    tempFiles.push(out);
+
+    const result = await buildEventsJson(out);
+
+    expect(mockEnrichEvents).toHaveBeenCalledWith([event]);
+    expect(result.events[0].enrichment?.spotifyUrl).toBe('https://open.spotify.com/artist/test');
   });
 
   it('serialises startDate and endDate as ISO strings', async () => {

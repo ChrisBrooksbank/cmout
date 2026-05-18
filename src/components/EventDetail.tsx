@@ -49,6 +49,7 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
     price,
     imageUrl,
     sourceUrl,
+    enrichment,
   } = event;
 
   return (
@@ -81,6 +82,36 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
         {price !== null && <p className="event-detail__price">{price}</p>}
 
         {description && <p className="event-detail__description">{description}</p>}
+
+        {enrichment && (enrichment.spotifyUrl || enrichment.youtubeUrl) && (
+          <section className="event-detail__artist-links" aria-label="Artist links">
+            <h2 className="event-detail__artist-heading">
+              {enrichment.artistName ? `${enrichment.artistName} links` : 'Artist links'}
+            </h2>
+            <div className="event-detail__artist-actions">
+              {enrichment.spotifyUrl && (
+                <a
+                  href={enrichment.spotifyUrl}
+                  className="event-detail__artist-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Spotify
+                </a>
+              )}
+              {enrichment.youtubeUrl && (
+                <a
+                  href={enrichment.youtubeUrl}
+                  className="event-detail__artist-link"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  YouTube
+                </a>
+              )}
+            </div>
+          </section>
+        )}
 
         <a
           href={sourceUrl}

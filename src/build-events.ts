@@ -6,6 +6,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CmEvent } from './types.js';
 import { aggregateEvents } from './aggregator.js';
+import { enrichEvents } from './enrichment.js';
 import { generateEmbeddings } from './embeddings/generate.js';
 
 /** CmEvent with Date fields serialised as ISO strings for JSON consumption */
@@ -32,11 +33,12 @@ const DEFAULT_OUTPUT = join(process.cwd(), 'public', 'events.json');
 
 export async function buildEventsJson(outputPath: string = DEFAULT_OUTPUT): Promise<EventsJson> {
   const result = await aggregateEvents();
+  const events = await enrichEvents(result.events);
 
   const output: EventsJson = {
     fetchedAt: result.fetchedAt.toISOString(),
-    totalEvents: result.totalDeduped,
-    events: result.events.map(serializeEvent),
+    totalEvents: events.length,
+    events: events.map(serializeEvent),
   };
 
   await mkdir(dirname(outputPath), { recursive: true });

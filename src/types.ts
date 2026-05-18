@@ -14,6 +14,14 @@ export interface CmEvent {
   imageUrl: string | null;
   price: string | null;
   promoter: string | null;
+  enrichment?: EventEnrichment;
+}
+
+export interface EventEnrichment {
+  artistName?: string;
+  spotifyUrl?: string;
+  youtubeUrl?: string;
+  confidence: 'high' | 'medium' | 'low';
 }
 
 export type EventCategory =
