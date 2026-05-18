@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import App, { filterEvents, isInDateRange, defaultFilters } from './App';
+import App, { balanceEventsByCategory, filterEvents, isInDateRange, defaultFilters } from './App';
 import type { FilterOptions } from './App';
 import type { CmEvent } from './types';
 
@@ -205,6 +205,48 @@ describe('App', () => {
       expect(stored.dateRange).toBe('today');
     });
   });
+
+  it('balances categories in the default browsing list', async () => {
+    mockFetch([
+      makeEvent({ id: 'fitness-1', title: 'Fitness One', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-2', title: 'Fitness Two', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-3', title: 'Fitness Three', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-4', title: 'Fitness Four', category: 'fitness-class' }),
+      makeEvent({ id: 'music-1', title: 'Jazz Night', category: 'live-music' }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /jazz night/i })).toBeInTheDocument();
+    });
+
+    const headings = screen
+      .getAllByRole('heading', { level: 2 })
+      .map(heading => heading.textContent);
+    expect(headings.slice(0, 3)).toEqual(['Fitness One', 'Fitness Two', 'Jazz Night']);
+  });
+
+  it('keeps selected category results in their original order', async () => {
+    mockFetch([
+      makeEvent({ id: 'sport-1', title: 'Park Run', category: 'sport' }),
+      makeEvent({ id: 'sport-2', title: 'Track Meet', category: 'sport' }),
+      makeEvent({ id: 'music-1', title: 'Jazz Night', category: 'live-music' }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText(/sport/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByLabelText(/sport/i));
+
+    const headings = screen
+      .getAllByRole('heading', { level: 2 })
+      .map(heading => heading.textContent);
+    expect(headings).toEqual(['Park Run', 'Track Meet']);
+  });
 });
 
 describe('filterEvents', () => {
@@ -373,6 +415,35 @@ describe('filterEvents', () => {
     );
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe('1');
+  });
+});
+
+describe('balanceEventsByCategory', () => {
+  it('limits repeated categories while other categories are available', () => {
+    const result = balanceEventsByCategory([
+      makeEvent({ id: 'fitness-1', title: 'Fitness 1', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-2', title: 'Fitness 2', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-3', title: 'Fitness 3', category: 'fitness-class' }),
+      makeEvent({ id: 'music-1', title: 'Music 1', category: 'live-music' }),
+      makeEvent({ id: 'music-2', title: 'Music 2', category: 'live-music' }),
+    ]);
+
+    expect(result.map(event => event.id)).toEqual([
+      'fitness-1',
+      'fitness-2',
+      'music-1',
+      'fitness-3',
+      'music-2',
+    ]);
+  });
+
+  it('preserves event order when there is only one category', () => {
+    const source = [
+      makeEvent({ id: 'fitness-1', title: 'Fitness 1', category: 'fitness-class' }),
+      makeEvent({ id: 'fitness-2', title: 'Fitness 2', category: 'fitness-class' }),
+    ];
+
+    expect(balanceEventsByCategory(source)).toEqual(source);
   });
 });
 

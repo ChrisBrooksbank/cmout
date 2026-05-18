@@ -248,6 +248,52 @@ export function filterEvents(
   });
 }
 
+export function balanceEventsByCategory(events: CmEvent[], maxConsecutive = 2): CmEvent[] {
+  if (events.length <= maxConsecutive || maxConsecutive < 1) return events;
+
+  const buckets = new Map<EventCategory, CmEvent[]>();
+  const categoryOrder: EventCategory[] = [];
+
+  for (const event of events) {
+    if (!buckets.has(event.category)) {
+      buckets.set(event.category, []);
+      categoryOrder.push(event.category);
+    }
+    buckets.get(event.category)?.push(event);
+  }
+
+  if (categoryOrder.length <= 1) return events;
+
+  const balanced: CmEvent[] = [];
+  let lastCategory: EventCategory | null = null;
+  let consecutive = 0;
+
+  while (balanced.length < events.length) {
+    const availableCategories = categoryOrder.filter(
+      category => (buckets.get(category)?.length ?? 0) > 0
+    );
+    if (availableCategories.length === 0) break;
+
+    let category = availableCategories[0];
+    if (lastCategory && consecutive >= maxConsecutive && availableCategories.length > 1) {
+      category = availableCategories.find(candidate => candidate !== lastCategory) ?? category;
+    }
+
+    const next = buckets.get(category)?.shift();
+    if (!next) continue;
+
+    balanced.push(next);
+    if (category === lastCategory) {
+      consecutive += 1;
+    } else {
+      lastCategory = category;
+      consecutive = 1;
+    }
+  }
+
+  return balanced;
+}
+
 export default function App() {
   const [events, setEvents] = useState<CmEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -366,6 +412,14 @@ export default function App() {
     filterOptions,
     searchQuery && modelReady ? semanticResults : undefined
   );
+  const hasFocusedFilter =
+    searchQuery.trim() !== '' ||
+    selectedCategories.length > 0 ||
+    selectedVenues.length > 0 ||
+    selectedPromoters.length > 0;
+  const displayedEvents = hasFocusedFilter
+    ? filteredEvents
+    : balanceEventsByCategory(filteredEvents);
 
   const totalFilterCount =
     selectedCategories.length +
@@ -484,7 +538,7 @@ export default function App() {
               {error}
             </p>
           )}
-          {!loading && !error && <EventList events={filteredEvents} onSelect={setSelectedEvent} />}
+          {!loading && !error && <EventList events={displayedEvents} onSelect={setSelectedEvent} />}
         </section>
       </main>
     </div>
