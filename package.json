@@ -1,6 +1,7 @@
 {
   "name": "cmout",
   "version": "0.2.0",
+  "license": "MIT",
   "description": "Chelmsford Local Events Aggregator - Data source verification prototype",
   "type": "module",
   "scripts": {
