@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOW_FILE: daily-events.yml
-      KEEP_WORKFLOW_RUNS: '7'
+      KEEP_WORKFLOW_RUNS: '6'
     steps:
       - name: Trigger Netlify build hook
         run: curl -fsS -X POST -d '{}' "${{ secrets.NETLIFY_BUILD_HOOK }}"
