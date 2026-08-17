@@ -5,9 +5,36 @@ on:
     - cron: '0 5 * * *'
   workflow_dispatch:
 
+permissions:
+  actions: write
+
 jobs:
   trigger-netlify-build:
     runs-on: ubuntu-latest
+    env:
+      WORKFLOW_FILE: daily-events.yml
+      KEEP_WORKFLOW_RUNS: '7'
     steps:
       - name: Trigger Netlify build hook
-        run: curl -X POST -d '{}' ${{ secrets.NETLIFY_BUILD_HOOK }}
+        run: curl -fsS -X POST -d '{}' "${{ secrets.NETLIFY_BUILD_HOOK }}"
+
+      - name: Prune older completed workflow runs
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mapfile -t run_ids < <(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE}/runs?per_page=100" \
+              --jq '.workflow_runs[] | select(.status == "completed") | .id'
+          )
+
+          if ((${#run_ids[@]} <= KEEP_WORKFLOW_RUNS)); then
+            echo "Found ${#run_ids[@]} completed run(s); nothing to prune."
+            exit 0
+          fi
+
+          for run_id in "${run_ids[@]:KEEP_WORKFLOW_RUNS}"; do
+            echo "Deleting older workflow run ${run_id}"
+            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}"
+          done
