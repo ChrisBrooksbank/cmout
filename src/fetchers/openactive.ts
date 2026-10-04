@@ -269,20 +269,27 @@ export const openactiveFetcher: Fetcher = {
     const seriesItems = await fetchAllPages(FEEDS['session-series'], errors, 'session-series');
     const seriesLookup = buildSeriesLookup(seriesItems);
 
-    // Also emit series themselves as "recurring" events
-    for (const item of seriesItems) {
-      const ev = parseSessionSeries(item);
-      if (ev) allEvents.push(ev);
-    }
-
     // Step 2: Fetch scheduled-sessions (these reference series by URL)
     const scheduledItems = await fetchAllPages(
       FEEDS['scheduled-sessions'],
       errors,
       'scheduled-sessions'
     );
+    const seriesWithSessions = new Set<string>();
     for (const item of scheduledItems) {
       const ev = parseScheduledSession(item, seriesLookup);
+      if (!ev) continue;
+      allEvents.push(ev);
+      const superEvent = item.data?.superEvent;
+      if (typeof superEvent === 'string') seriesWithSessions.add(superEvent);
+    }
+
+    // Also emit series as "recurring" placeholders, but only when the feed has no
+    // real sessions for them — placeholders carry the build time as a fake start
+    for (const item of seriesItems) {
+      const atId = item.data?.['@id'];
+      if (typeof atId === 'string' && seriesWithSessions.has(atId)) continue;
+      const ev = parseSessionSeries(item);
       if (ev) allEvents.push(ev);
     }
 
