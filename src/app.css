@@ -544,8 +544,8 @@ fieldset {
 
 .event-card__date {
   font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .event-card__venue {
@@ -556,6 +556,129 @@ fieldset {
 .event-card__price {
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+/* ----- Event Feed (day sections) ----- */
+.event-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.event-feed__day {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.event-feed__day-heading {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+}
+
+.event-feed__day-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.event-feed__sessions {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.event-feed__sessions[open] {
+  background: transparent;
+  border-color: transparent;
+}
+
+.event-feed__sessions-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 14px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.event-feed__sessions-summary::-webkit-details-marker {
+  display: none;
+}
+
+.event-feed__sessions-summary::after {
+  content: 'Show';
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--accent);
+}
+
+.event-feed__sessions[open] > .event-feed__sessions-summary::after {
+  content: 'Hide';
+}
+
+.event-feed__sessions[open] > .event-list {
+  margin-top: 4px;
+}
+
+.event-feed__sessions-count {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.event-feed__more {
+  align-self: center;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.event-feed__more:hover {
+  background: var(--surface-hover);
+}
+
+/* Session group card: one activity, several times */
+.session-card__times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.session-card__time {
+  min-width: 56px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: var(--surface-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.session-card__time:hover,
+.session-card__time:focus-visible {
+  border-color: var(--border-focus);
+  background: var(--surface-hover);
 }
 
 /* ----- Event Detail ----- */
@@ -664,8 +787,8 @@ fieldset {
 
 .event-detail__date {
   font-size: 1rem;
-  font-weight: 500;
-  color: var(--accent);
+  font-weight: 600;
+  color: var(--text);
 }
 
 .event-detail__venue {
@@ -719,6 +842,36 @@ fieldset {
   background: var(--accent-hover);
   box-shadow: var(--shadow-glow);
   text-decoration: none;
+}
+
+.event-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-detail__action {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+}
+
+.event-detail__action:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+
+.event-detail__action-status {
+  font-size: 0.85rem;
+  color: var(--text-muted);
 }
 
 /* ----- Banners: Offline ----- */

@@ -49,7 +49,7 @@ export function loadNotificationPrefs(): NotificationPrefs {
   return DEFAULT_PREFS;
 }
 
-export function saveNotificationPrefs(prefs: NotificationPrefs): void {
+function saveNotificationPrefs(prefs: NotificationPrefs): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   } catch {

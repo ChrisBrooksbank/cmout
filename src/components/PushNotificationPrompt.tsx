@@ -36,10 +36,16 @@ export default function PushNotificationPrompt() {
 
   async function handleEnableClick() {
     if (!notificationSupportAvailable()) return;
-    const result = await Notification.requestPermission();
-    setPermission(result as PermissionState);
-    if (result === 'granted') {
-      await subscribeToPushNotifications(loadNotificationPrefs());
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result as PermissionState);
+      if (result === 'granted') {
+        await subscribeToPushNotifications(loadNotificationPrefs());
+      }
+    } catch {
+      // Subscription failed (e.g. push not configured) — hide the prompt rather than
+      // leaving an unhandled rejection; the user can retry from Settings
+      setDismissed(true);
     }
   }
 

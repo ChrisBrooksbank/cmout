@@ -1,6 +1,6 @@
 import { getStore } from '@netlify/blobs';
 
-export interface PushSubscriptionKeys {
+interface PushSubscriptionKeys {
   auth: string;
   p256dh: string;
 }
@@ -22,6 +22,8 @@ export interface StoredSubscription {
   createdAt: string;
   updatedAt: string;
   lastDigestSentAt: string | null;
+  /** IDs of events already included in a digest, so they aren't announced again. */
+  sentEventIds?: string[];
 }
 
 const store = new Map<string, StoredSubscription>();
@@ -79,6 +81,7 @@ export async function addSubscription(
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     lastDigestSentAt: existing?.lastDigestSentAt ?? null,
+    sentEventIds: existing?.sentEventIds ?? [],
   };
   if (hasNetlifyBlobsContext()) {
     await getBlobStore().setJSON(blobKey(subscription.endpoint), entry);
@@ -112,7 +115,11 @@ export async function getSubscriptionCount(): Promise<number> {
   return store.size;
 }
 
-export async function updateLastDigestSentAt(endpoint: string, sentAt: Date): Promise<void> {
+export async function updateLastDigestSentAt(
+  endpoint: string,
+  sentAt: Date,
+  sentEventIds?: string[]
+): Promise<void> {
   const subscriptions = await getSubscriptions();
   const existing = subscriptions.find(s => s.subscription.endpoint === endpoint);
   if (!existing) return;
@@ -121,6 +128,7 @@ export async function updateLastDigestSentAt(endpoint: string, sentAt: Date): Pr
     ...existing,
     updatedAt: new Date().toISOString(),
     lastDigestSentAt: sentAt.toISOString(),
+    ...(sentEventIds ? { sentEventIds } : {}),
   };
 
   if (hasNetlifyBlobsContext()) {

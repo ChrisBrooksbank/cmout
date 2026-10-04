@@ -103,7 +103,8 @@ function htmlToText(html: string): string {
     .replace(/&#8211;|&ndash;/g, '–')
     .replace(/&#8217;|&rsquo;/g, "'")
     .replace(/&nbsp;/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n\s*/g, '\n')
     .trim();
 }
 

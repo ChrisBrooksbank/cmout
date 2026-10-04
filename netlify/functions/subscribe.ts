@@ -73,6 +73,14 @@ export default async function handler(request: Request): Promise<Response> {
       return errorResponse('Invalid frequency value', 400);
     }
 
+    // Stored subscriptions without a categories array are ignored by the digest
+    if (
+      !Array.isArray(preferences.categories) ||
+      !preferences.categories.every(c => typeof c === 'string')
+    ) {
+      return errorResponse('Invalid categories value', 400);
+    }
+
     const stored = await addSubscription(subscription, preferences);
     return jsonResponse({ ok: true, createdAt: stored.createdAt }, 201);
   }

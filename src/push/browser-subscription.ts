@@ -1,6 +1,6 @@
 import type { EventCategory } from '../types';
 
-export type NotificationFrequency = 'immediate' | 'daily-digest';
+type NotificationFrequency = 'immediate' | 'daily-digest';
 
 export interface NotificationPrefs {
   categories: EventCategory[];

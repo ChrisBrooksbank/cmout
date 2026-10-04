@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import type { CmEvent, EventCategory } from './types';
 import { semanticSearch } from './search/semantic-search';
+import { buildDaySections } from './listing';
 import useAppSettings from './hooks/useAppSettings';
 import useSmartSearch from './hooks/useSmartSearch';
 import CategoryFilter from './components/CategoryFilter';
 import DateRangeFilter, { type DateRange } from './components/DateRangeFilter';
 import EventDetail from './components/EventDetail';
+import EventFeed from './components/EventFeed';
 import EventList from './components/EventList';
 import FilterSection from './components/FilterSection';
 import InstallPrompt from './components/InstallPrompt';
@@ -102,7 +104,7 @@ function validDateRange(value: unknown): DateRange {
   return DATE_RANGES.includes(value as DateRange) ? (value as DateRange) : 'all';
 }
 
-export function loadPersistedFilters(): PersistedFilterOptions {
+function loadPersistedFilters(): PersistedFilterOptions {
   try {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY);
     if (!stored) return defaultPersistedFilters;
@@ -134,7 +136,12 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
   const now = new Date();
   const start = event.startDate;
 
-  if (range === 'all') return true;
+  if (range === 'all') {
+    // Hide events that are over (data can be up to a day old, or served from cache)
+    if (event.endDate) return event.endDate >= now;
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return start >= todayStart;
+  }
 
   if (range === 'today') {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -172,15 +179,18 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     sundayEnd.setDate(friday.getDate() + 2);
     sundayEnd.setHours(23, 59, 59, 999);
 
-    if (start >= friday && start <= sundayEnd) return true;
-    if (start < friday && event.endDate && event.endDate >= friday) return true;
+    // Once the weekend has started, don't show events that are already over
+    const from = friday > now ? friday : now;
+    if (start >= from && start <= sundayEnd) return true;
+    if (start < from && event.endDate && event.endDate >= from) return true;
     return false;
   }
 
   if (range === 'this-week') {
     const startOfWeek = new Date(now);
     startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // Weeks run Monday–Sunday (UK convention)
+    startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
     if (start >= now && start < endOfWeek) return true;
@@ -248,52 +258,6 @@ export function filterEvents(
   });
 }
 
-export function balanceEventsByCategory(events: CmEvent[], maxConsecutive = 2): CmEvent[] {
-  if (events.length <= maxConsecutive || maxConsecutive < 1) return events;
-
-  const buckets = new Map<EventCategory, CmEvent[]>();
-  const categoryOrder: EventCategory[] = [];
-
-  for (const event of events) {
-    if (!buckets.has(event.category)) {
-      buckets.set(event.category, []);
-      categoryOrder.push(event.category);
-    }
-    buckets.get(event.category)?.push(event);
-  }
-
-  if (categoryOrder.length <= 1) return events;
-
-  const balanced: CmEvent[] = [];
-  let lastCategory: EventCategory | null = null;
-  let consecutive = 0;
-
-  while (balanced.length < events.length) {
-    const availableCategories = categoryOrder.filter(
-      category => (buckets.get(category)?.length ?? 0) > 0
-    );
-    if (availableCategories.length === 0) break;
-
-    let category = availableCategories[0];
-    if (lastCategory && consecutive >= maxConsecutive && availableCategories.length > 1) {
-      category = availableCategories.find(candidate => candidate !== lastCategory) ?? category;
-    }
-
-    const next = buckets.get(category)?.shift();
-    if (!next) continue;
-
-    balanced.push(next);
-    if (category === lastCategory) {
-      consecutive += 1;
-    } else {
-      lastCategory = category;
-      consecutive = 1;
-    }
-  }
-
-  return balanced;
-}
-
 export default function App() {
   const [events, setEvents] = useState<CmEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -311,11 +275,42 @@ export default function App() {
     initialFilters.selectedPromoters
   );
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
+  const listScrollRef = useRef<number | null>(null);
+
+  // Opening an event adds a history entry, so the phone/browser back button
+  // returns to the list instead of leaving the app
+  const openEvent = useCallback((event: CmEvent) => {
+    listScrollRef.current = window.scrollY;
+    window.history.pushState({ cmoutEvent: event.id }, '');
+    setSelectedEvent(event);
+  }, []);
+
+  const closeEvent = useCallback(() => {
+    if ((window.history.state as { cmoutEvent?: string } | null)?.cmoutEvent) {
+      window.history.back(); // popstate below clears the selection
+    } else {
+      setSelectedEvent(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    const onPopState = () => setSelectedEvent(null);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Return to where the user was in the list
+  useLayoutEffect(() => {
+    if (selectedEvent === null && listScrollRef.current !== null) {
+      window.scrollTo(0, listScrollRef.current);
+      listScrollRef.current = null;
+    }
+  }, [selectedEvent]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { settings, setTheme, setFontSize } = useAppSettings();
-  const { phase, embeddings, modelReady, onQueryStart, acceptSmartSearch, declineSmartSearch } =
+  const { phase, embeddings, onQueryStart, acceptSmartSearch, declineSmartSearch } =
     useSmartSearch();
   const [semanticResults, setSemanticResults] = useState<CmEvent[] | undefined>(undefined);
   const prevQueryRef = useRef('');
@@ -327,7 +322,14 @@ export default function App() {
         return res.json() as Promise<{ events: RawEvent[] }>;
       })
       .then(eventsData => {
-        setEvents(eventsData.events.map(hydrateEvent));
+        const loaded = eventsData.events.map(hydrateEvent);
+        setEvents(loaded);
+        // Drop saved venue/promoter selections that no longer appear in the data,
+        // otherwise they filter out everything while being invisible in the lists
+        const venues = new Set(loaded.map(ev => ev.venue));
+        const promoters = new Set(loaded.map(ev => ev.promoter));
+        setSelectedVenues(prev => prev.filter(v => venues.has(v)));
+        setSelectedPromoters(prev => prev.filter(p => promoters.has(p)));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -348,7 +350,7 @@ export default function App() {
 
   // Run semantic search when query changes and model is ready
   useEffect(() => {
-    if (!searchQuery || !modelReady || !embeddings) {
+    if (!searchQuery || phase !== 'ready' || !embeddings) {
       setSemanticResults(undefined);
       return;
     }
@@ -361,7 +363,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, modelReady, embeddings, events]);
+  }, [searchQuery, phase, embeddings, events]);
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -410,16 +412,22 @@ export default function App() {
   const filteredEvents = filterEvents(
     events,
     filterOptions,
-    searchQuery && modelReady ? semanticResults : undefined
+    searchQuery && phase === 'ready' ? semanticResults : undefined
   );
+  const isSearching = searchQuery.trim() !== '';
   const hasFocusedFilter =
-    searchQuery.trim() !== '' ||
-    selectedCategories.length > 0 ||
-    selectedVenues.length > 0 ||
-    selectedPromoters.length > 0;
-  const displayedEvents = hasFocusedFilter
-    ? filteredEvents
-    : balanceEventsByCategory(filteredEvents);
+    selectedCategories.length > 0 || selectedVenues.length > 0 || selectedPromoters.length > 0;
+  // Browsing: day-by-day feed. Searching: flat list in relevance order.
+  const daySections = isSearching
+    ? []
+    : buildDaySections(filteredEvents, { balance: !hasFocusedFilter });
+  const feedKey = JSON.stringify([
+    selectedCategories,
+    dateRange,
+    customDate,
+    selectedVenues,
+    selectedPromoters,
+  ]);
 
   const totalFilterCount =
     selectedCategories.length +
@@ -437,7 +445,7 @@ export default function App() {
   };
 
   if (selectedEvent) {
-    return <EventDetail event={selectedEvent} onBack={() => setSelectedEvent(null)} />;
+    return <EventDetail event={selectedEvent} onBack={closeEvent} />;
   }
 
   const categoryFilter = (
@@ -538,7 +546,19 @@ export default function App() {
               {error}
             </p>
           )}
-          {!loading && !error && <EventList events={displayedEvents} onSelect={setSelectedEvent} />}
+          {!loading &&
+            !error &&
+            (isSearching ? (
+              <EventList events={filteredEvents} onSelect={openEvent} />
+            ) : (
+              <EventFeed
+                key={feedKey}
+                sections={daySections}
+                onSelect={openEvent}
+                expandSessions={hasFocusedFilter}
+                onClearFilters={totalFilterCount > 0 ? clearAllFilters : undefined}
+              />
+            ))}
         </section>
       </main>
     </div>

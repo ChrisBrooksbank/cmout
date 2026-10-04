@@ -97,7 +97,7 @@ describe('src/sw.ts', () => {
   it('includes icon in notification options', async () => {
     const src = await loadSW();
     expect(src).toContain('icon');
-    expect(src).toContain('/icons/icon-192.png');
+    expect(src).toContain('/icons/icon-192.svg');
   });
 
   it('includes event url in notification data', async () => {

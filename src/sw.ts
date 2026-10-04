@@ -52,11 +52,18 @@ registerRoute(
 // Push notification handler: display a notification when a push message is received.
 // The server sends JSON with { title, body, icon, url } fields.
 self.addEventListener('push', event => {
-  const data = event.data?.json() ?? {};
+  // A non-JSON payload would otherwise throw and no notification would be shown
+  let data: Record<string, string | undefined> = {};
+  try {
+    data = event.data?.json() ?? {};
+  } catch {
+    data = { body: event.data?.text() };
+  }
   const title: string = data.title ?? 'New event in Chelmsford';
   const options: NotificationOptions = {
     body: data.body ?? '',
-    icon: data.icon ?? '/icons/icon-192.png',
+    icon: data.icon ?? '/icons/icon-192.svg',
+    badge: data.badge,
     data: { url: data.url ?? '/' },
   };
   event.waitUntil(self.registration.showNotification(title, options));
@@ -66,7 +73,8 @@ self.addEventListener('push', event => {
 // app window on the event URL or open a new one if none is open.
 self.addEventListener('notificationclick', event => {
   event.notification.close();
-  const url: string = event.notification.data?.url ?? '/';
+  // Client URLs are absolute, so resolve relative paths (e.g. '/') before comparing
+  const url = new URL(event.notification.data?.url ?? '/', self.location.origin).href;
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
       // Focus an existing window showing the same URL if possible

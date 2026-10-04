@@ -147,8 +147,10 @@ function parseScheduledSession(
   // Resolve parent session series
   const superEventUrl = d.superEvent as string | undefined;
   const series = superEventUrl ? seriesLookup.get(superEventUrl) : undefined;
+  // Without its series we have no name, description or venue to show
+  if (!series) return null;
 
-  const title = series?.name ?? 'Unknown Activity';
+  const title = series.name;
 
   // Deep-link with activityDate so users land on the right day
   const baseUrl = series?.url ?? BOOKING_URL;
@@ -226,9 +228,11 @@ function parseGenericItem(item: RpdeItem): CmEvent | null {
   const d = item.data;
 
   const name =
-    (d.name as string) ??
-    (((d.facilityUse ?? d.superEvent) as Record<string, unknown>)?.name as string) ??
-    'Unknown Activity';
+    (d.name as string | undefined) ??
+    (((d.facilityUse ?? d.superEvent) as Record<string, unknown>)?.name as string | undefined);
+  // Unnamed items are facility-hire booking slots (e.g. a pitch every 15 minutes),
+  // not events — there are ~10k of them and they link to API endpoints
+  if (!name) return null;
 
   const startDate = d.startDate ? new Date(d.startDate as string) : null;
   if (!startDate || isNaN(startDate.getTime())) return null;
@@ -269,20 +273,27 @@ export const openactiveFetcher: Fetcher = {
     const seriesItems = await fetchAllPages(FEEDS['session-series'], errors, 'session-series');
     const seriesLookup = buildSeriesLookup(seriesItems);
 
-    // Also emit series themselves as "recurring" events
-    for (const item of seriesItems) {
-      const ev = parseSessionSeries(item);
-      if (ev) allEvents.push(ev);
-    }
-
     // Step 2: Fetch scheduled-sessions (these reference series by URL)
     const scheduledItems = await fetchAllPages(
       FEEDS['scheduled-sessions'],
       errors,
       'scheduled-sessions'
     );
+    const seriesWithSessions = new Set<string>();
     for (const item of scheduledItems) {
       const ev = parseScheduledSession(item, seriesLookup);
+      if (!ev) continue;
+      allEvents.push(ev);
+      const superEvent = item.data?.superEvent;
+      if (typeof superEvent === 'string') seriesWithSessions.add(superEvent);
+    }
+
+    // Also emit series as "recurring" placeholders, but only when the feed has no
+    // real sessions for them — placeholders carry the build time as a fake start
+    for (const item of seriesItems) {
+      const atId = item.data?.['@id'];
+      if (typeof atId === 'string' && seriesWithSessions.has(atId)) continue;
+      const ev = parseSessionSeries(item);
       if (ev) allEvents.push(ev);
     }
 

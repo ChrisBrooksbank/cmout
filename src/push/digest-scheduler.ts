@@ -15,7 +15,7 @@ import {
   type StoredSubscription,
 } from './subscription-store.js';
 
-export interface DigestEvent {
+interface DigestEvent {
   id: string;
   title: string;
   startDate: string; // ISO 8601
@@ -46,20 +46,28 @@ function isExpiredSubscriptionError(error: unknown): boolean {
   return statusCode === 404 || statusCode === 410;
 }
 
+/** How far ahead the daily digest looks for upcoming events. */
+const DIGEST_WINDOW_DAYS = 7;
+
 /**
- * Select events from `events` that match the subscriber's category preferences
- * and (optionally) start on or after `sinceDate`.
+ * Select events from `events` that match the subscriber's category preferences,
+ * haven't already been sent to them, and (optionally) start within
+ * [`sinceDate`, `untilDate`).
  */
 export function selectEventsForSubscriber(
   events: CmEvent[],
   subscription: StoredSubscription,
-  sinceDate?: Date
+  sinceDate?: Date,
+  untilDate?: Date
 ): CmEvent[] {
+  const alreadySent = new Set(subscription.sentEventIds ?? []);
   return events.filter(event => {
     if (subscription.categories.length > 0 && !subscription.categories.includes(event.category)) {
       return false;
     }
+    if (alreadySent.has(event.id)) return false;
     if (sinceDate !== undefined && event.startDate < sinceDate) return false;
+    if (untilDate !== undefined && event.startDate >= untilDate) return false;
     return true;
   });
 }
@@ -71,9 +79,10 @@ export function selectEventsForSubscriber(
 export function buildDigest(
   events: CmEvent[],
   subscription: StoredSubscription,
-  sinceDate?: Date
+  sinceDate?: Date,
+  untilDate?: Date
 ): DigestPayload | null {
-  const matching = selectEventsForSubscriber(events, subscription, sinceDate);
+  const matching = selectEventsForSubscriber(events, subscription, sinceDate, untilDate);
   if (matching.length === 0) return null;
 
   const digestEvents: DigestEvent[] = matching.map(e => ({
@@ -100,8 +109,11 @@ export function buildDigest(
 /**
  * Run the daily digest for all subscriptions with `frequency: 'daily-digest'`.
  *
+ * Each digest covers events starting in the next week that the subscriber
+ * hasn't been sent before; sent event IDs are remembered per subscription.
+ *
  * @param events  Full list of events to filter against.
- * @param sinceDate  Optional lower bound for event.startDate (defaults to start of today).
+ * @param sinceDate  Optional lower bound for event.startDate (defaults to now).
  * @param sendFn  Function that delivers the notification — defaults to a no-op stub.
  */
 export async function runDailyDigest(
@@ -109,18 +121,15 @@ export async function runDailyDigest(
   sinceDate?: Date,
   sendFn: SendFn = noopSend
 ): Promise<DigestResult[]> {
-  const defaultSince = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
+  const since = sinceDate ?? new Date();
+  const until = new Date(since);
+  until.setDate(until.getDate() + DIGEST_WINDOW_DAYS);
+  const currentIds = new Set(events.map(e => e.id));
 
   const dailySubscriptions = (await getSubscriptions()).filter(s => s.frequency === 'daily-digest');
 
   const promises = dailySubscriptions.map(async (sub): Promise<DigestResult> => {
-    const since =
-      sinceDate ?? (sub.lastDigestSentAt ? new Date(sub.lastDigestSentAt) : defaultSince());
-    const payload = buildDigest(events, sub, since);
+    const payload = buildDigest(events, sub, since, until);
 
     if (payload === null) {
       return { endpoint: sub.subscription.endpoint, sent: false, eventCount: 0 };
@@ -128,7 +137,12 @@ export async function runDailyDigest(
 
     try {
       await sendFn(sub, payload);
-      await updateLastDigestSentAt(sub.subscription.endpoint, new Date());
+      // Forget IDs of events no longer listed so the stored set stays bounded
+      const sentEventIds = [
+        ...(sub.sentEventIds ?? []).filter(id => currentIds.has(id)),
+        ...payload.events.map(e => e.id),
+      ];
+      await updateLastDigestSentAt(sub.subscription.endpoint, new Date(), sentEventIds);
       return {
         endpoint: sub.subscription.endpoint,
         sent: true,

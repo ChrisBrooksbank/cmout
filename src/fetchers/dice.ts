@@ -15,7 +15,8 @@ const VENUE_URLS = [
 interface DiceEvent {
   id: string;
   name: string;
-  perm_name: string;
+  /** No longer present in DICE page data (2026-10); kept for older payloads */
+  perm_name?: string;
   date_unix: number;
   dates: {
     event_start_date: string;
@@ -25,14 +26,15 @@ interface DiceEvent {
   venues: Array<{
     name: string;
     address: string;
-    location: { lat: number; lng: number };
+    location?: { lat: number; lng: number };
+    city?: { location?: { lat: number; lng: number } };
   }>;
   price: {
     currency: string;
     amount: number; // in pence
     amount_from: number | null;
   };
-  tags_types: Array<{ name: string; value: string; title: string }>;
+  tags_types?: Array<{ name: string; value: string; title: string }>;
   images: {
     square?: string;
     landscape?: string;
@@ -44,7 +46,7 @@ interface DiceEvent {
   status: string;
 }
 
-function mapDiceCategory(tags: DiceEvent['tags_types']): EventCategory {
+function mapDiceCategory(tags: NonNullable<DiceEvent['tags_types']>): EventCategory {
   const values = tags.map(t => t.value.toLowerCase());
   if (values.some(v => v.includes('music') || v.includes('gig') || v.includes('concert')))
     return 'live-music';
@@ -54,10 +56,11 @@ function mapDiceCategory(tags: DiceEvent['tags_types']): EventCategory {
   if (values.some(v => v.includes('festival'))) return 'festival';
   if (values.some(v => v.includes('family') || v.includes('kids'))) return 'kids';
   if (values.some(v => v.includes('community'))) return 'community';
-  return 'other';
+  // DICE no longer sends tags on venue pages; its listings are overwhelmingly gigs
+  return tags.length === 0 ? 'live-music' : 'other';
 }
 
-function parseDiceEvent(ev: DiceEvent): CmEvent | null {
+export function parseDiceEvent(ev: DiceEvent): CmEvent | null {
   if (ev.status !== 'on-sale' && ev.status !== 'sold-out') return null;
 
   const startDate = new Date(ev.dates.event_start_date);
@@ -65,7 +68,8 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
 
   const endDate = ev.dates.event_end_date ? new Date(ev.dates.event_end_date) : null;
 
-  const venue = ev.venues[0];
+  const venue = ev.venues?.[0];
+  const location = venue?.location ?? venue?.city?.location;
   const priceAmount = ev.price.amount_from ?? ev.price.amount;
   const price = normalisePrice(priceAmount / 100);
 
@@ -79,9 +83,10 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
     address: venue?.address ?? '',
     category: mapDiceCategory(ev.tags_types ?? []),
     source: 'dice' as CmEvent['source'],
-    sourceUrl: `https://dice.fm/event/${ev.perm_name}`,
-    latitude: venue?.location?.lat ?? null,
-    longitude: venue?.location?.lng ?? null,
+    // dice.fm/event/<id> redirects to the event page; perm_name is no longer sent
+    sourceUrl: `https://dice.fm/event/${ev.perm_name ?? ev.id}`,
+    latitude: location?.lat ?? null,
+    longitude: location?.lng ?? null,
     imageUrl: ev.images?.landscape ?? ev.images?.square ?? null,
     price,
     promoter: null,
@@ -91,10 +96,10 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
 async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]> {
   const events: CmEvent[] = [];
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
 
+  try {
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'CmOut/0.1 (Chelmsford Events Aggregator)',
@@ -102,7 +107,6 @@ async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]>
       },
       signal: controller.signal,
     });
-    clearTimeout(timer);
 
     if (!res.ok) {
       errors.push(`DICE page ${url}: HTTP ${res.status}`);
@@ -130,6 +134,8 @@ async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]>
     }
   } catch (err) {
     errors.push(`DICE fetch error: ${(err as Error).message}`);
+  } finally {
+    clearTimeout(timer);
   }
 
   return events;
