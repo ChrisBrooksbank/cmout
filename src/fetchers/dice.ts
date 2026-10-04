@@ -91,10 +91,10 @@ function parseDiceEvent(ev: DiceEvent): CmEvent | null {
 async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]> {
   const events: CmEvent[] = [];
 
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
 
+  try {
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'CmOut/0.1 (Chelmsford Events Aggregator)',
@@ -102,7 +102,6 @@ async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]>
       },
       signal: controller.signal,
     });
-    clearTimeout(timer);
 
     if (!res.ok) {
       errors.push(`DICE page ${url}: HTTP ${res.status}`);
@@ -130,6 +129,8 @@ async function fetchVenuePage(url: string, errors: string[]): Promise<CmEvent[]>
     }
   } catch (err) {
     errors.push(`DICE fetch error: ${(err as Error).message}`);
+  } finally {
+    clearTimeout(timer);
   }
 
   return events;

@@ -56,7 +56,8 @@ self.addEventListener('push', event => {
   const title: string = data.title ?? 'New event in Chelmsford';
   const options: NotificationOptions = {
     body: data.body ?? '',
-    icon: data.icon ?? '/icons/icon-192.png',
+    icon: data.icon ?? '/icons/icon-192.svg',
+    badge: data.badge,
     data: { url: data.url ?? '/' },
   };
   event.waitUntil(self.registration.showNotification(title, options));

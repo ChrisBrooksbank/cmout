@@ -134,9 +134,9 @@ async function fetchPage(
       if (ev) events.push(ev);
     });
 
-    const nextLink = $('a.nextlink').attr('href') ?? null;
+    const nextLink = $('a.nextlink').attr('href');
 
-    return { events, nextUrl: nextLink };
+    return { events, nextUrl: nextLink ? new URL(nextLink, url).href : null };
   } catch (err) {
     clearTimeout(timer);
     errors.push(`WeGotTickets fetch error: ${(err as Error).message}`);

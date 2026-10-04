@@ -62,12 +62,14 @@ function mapCategory(code: string): EventCategory {
   }
 }
 
-function parseSkiddleEvent(ev: SkiddleEvent): CmEvent {
+export function parseSkiddleEvent(ev: SkiddleEvent): CmEvent {
   const startTime = ev.openingtimes?.doorsopen ?? ev.starttime ?? '00:00';
   const endTime = ev.openingtimes?.doorsclose ?? ev.endtime ?? null;
 
   const startDate = new Date(`${ev.date}T${startTime}`);
   const endDate = endTime ? new Date(`${ev.date}T${endTime}`) : null;
+  // Doors often close after midnight (e.g. 19:00–03:00) — roll the end into the next day
+  if (endDate && endDate <= startDate) endDate.setDate(endDate.getDate() + 1);
 
   return {
     id: makeEventId('skiddle', String(ev.id)),

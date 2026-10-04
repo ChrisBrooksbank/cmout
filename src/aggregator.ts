@@ -43,6 +43,7 @@ export interface AggregateResult {
 
 export async function aggregateEvents(sources?: EventSource[]): Promise<AggregateResult> {
   const fetchers = sources ? ALL_FETCHERS.filter(f => sources.includes(f.name)) : ALL_FETCHERS;
+  const startedAt = new Date();
 
   const results = await Promise.allSettled(fetchers.map(f => f.fetch()));
 
@@ -66,7 +67,9 @@ export async function aggregateEvents(sources?: EventSource[]): Promise<Aggregat
     }
   }
 
-  const deduped = deduplicateEvents(allEvents);
+  // Some feeds (e.g. OpenActive RPDE) include sessions that have already finished
+  const current = allEvents.filter(ev => (ev.endDate ?? ev.startDate) >= startedAt);
+  const deduped = deduplicateEvents(current);
 
   return {
     events: deduped,

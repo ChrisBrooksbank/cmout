@@ -72,6 +72,26 @@ describe('EventCard', () => {
     expect(times[1]).toHaveAttribute('datetime', '2026-07-15T22:00:00.000Z');
   });
 
+  it('includes the end date when the event ends on a later day', () => {
+    render(
+      <EventCard
+        event={{
+          ...baseEvent,
+          startDate: new Date('2026-07-15T10:00:00Z'),
+          endDate: new Date('2026-07-17T18:00:00Z'),
+        }}
+      />
+    );
+    const times = screen.getAllByRole('time');
+    expect(times[1].textContent).toMatch(/17 Jul 2026 at/);
+  });
+
+  it('shows only the end time when the event ends on the same day', () => {
+    render(<EventCard event={baseEvent} />);
+    const times = screen.getAllByRole('time');
+    expect(times[1].textContent).not.toMatch(/Jul/);
+  });
+
   it('renders only one time element when endDate is null', () => {
     render(<EventCard event={{ ...baseEvent, endDate: null }} />);
     const times = screen.getAllByRole('time');

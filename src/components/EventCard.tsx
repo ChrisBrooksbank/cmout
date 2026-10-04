@@ -47,7 +47,12 @@ export default function EventCard({ event }: EventCardProps) {
           {endDate && (
             <>
               {' '}
-              – <time dateTime={endDate.toISOString()}>{formatTime(endDate)}</time>
+              –{' '}
+              <time dateTime={endDate.toISOString()}>
+                {endDate.toDateString() === startDate.toDateString()
+                  ? formatTime(endDate)
+                  : `${formatDate(endDate)} at ${formatTime(endDate)}`}
+              </time>
             </>
           )}
         </p>
