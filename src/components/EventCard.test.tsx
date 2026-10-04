@@ -65,11 +65,11 @@ describe('EventCard', () => {
     expect(times[0]).toHaveAttribute('datetime', '2026-07-15T19:30:00.000Z');
   });
 
-  it('renders end time when endDate is provided', () => {
+  it('renders the time range when the event ends the same day', () => {
     render(<EventCard event={baseEvent} />);
-    const times = screen.getAllByRole('time');
-    expect(times).toHaveLength(2);
-    expect(times[1]).toHaveAttribute('datetime', '2026-07-15T22:00:00.000Z');
+    const time = screen.getByRole('time');
+    expect(time).toHaveTextContent(/\d{2}:\d{2}–\d{2}:\d{2}/);
+    expect(time.textContent?.match(/Jul/g)).toHaveLength(1);
   });
 
   it('includes the end date when the event ends on a later day', () => {
@@ -82,14 +82,7 @@ describe('EventCard', () => {
         }}
       />
     );
-    const times = screen.getAllByRole('time');
-    expect(times[1].textContent).toMatch(/17 Jul 2026 at/);
-  });
-
-  it('shows only the end time when the event ends on the same day', () => {
-    render(<EventCard event={baseEvent} />);
-    const times = screen.getAllByRole('time');
-    expect(times[1].textContent).not.toMatch(/Jul/);
+    expect(screen.getByRole('time')).toHaveTextContent(/17 Jul/);
   });
 
   it('renders only one time element when endDate is null', () => {

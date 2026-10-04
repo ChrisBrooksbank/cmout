@@ -1,7 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import App, { balanceEventsByCategory, filterEvents, isInDateRange, defaultFilters } from './App';
+import App, { filterEvents, isInDateRange, defaultFilters } from './App';
+import { balanceEventsByCategory } from './listing';
 import type { FilterOptions } from './App';
 import type { CmEvent } from './types';
 
@@ -14,7 +15,7 @@ const makeEvent = (overrides: Partial<CmEvent> = {}): CmEvent => ({
   venue: 'Civic Centre',
   address: '123 Main St',
   category: 'live-music',
-  source: 'openactive',
+  source: 'skiddle',
   sourceUrl: 'https://example.com/event/1',
   latitude: 51.736,
   longitude: 0.469,
@@ -133,7 +134,7 @@ describe('App', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /view details for art show/i }));
     fireEvent.click(screen.getByRole('button', { name: /back to events/i }));
-    expect(screen.getByRole('heading', { name: /cmout/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /cmout/i })).toBeInTheDocument();
   });
 
   it('renders filter controls', async () => {
@@ -187,7 +188,7 @@ describe('App', () => {
     expect(screen.queryByRole('heading', { name: /jazz night/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /future run/i })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/sport/i)).toBeChecked();
-    expect(screen.getByLabelText(/today/i)).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Today' })).toBeChecked();
   });
 
   it('drops persisted venue filters for venues no longer in the data', async () => {
@@ -222,7 +223,7 @@ describe('App', () => {
     });
 
     fireEvent.click(screen.getByLabelText(/sport/i));
-    fireEvent.click(screen.getByLabelText(/today/i));
+    fireEvent.click(screen.getByRole('radio', { name: 'Today' }));
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem('cmout-filter-preferences') ?? '{}');
@@ -231,13 +232,24 @@ describe('App', () => {
     });
   });
 
-  it('balances categories in the default browsing list', async () => {
+  it('groups events by day and folds leisure sessions behind a toggle', async () => {
     mockFetch([
-      makeEvent({ id: 'fitness-1', title: 'Fitness One', category: 'fitness-class' }),
-      makeEvent({ id: 'fitness-2', title: 'Fitness Two', category: 'fitness-class' }),
-      makeEvent({ id: 'fitness-3', title: 'Fitness Three', category: 'fitness-class' }),
-      makeEvent({ id: 'fitness-4', title: 'Fitness Four', category: 'fitness-class' }),
-      makeEvent({ id: 'music-1', title: 'Jazz Night', category: 'live-music' }),
+      makeEvent({ id: 'gig', title: 'Jazz Night', startDate: new Date('2026-03-01T19:30:00') }),
+      makeEvent({
+        id: 'swim-1',
+        title: 'Lane Swimming',
+        category: 'fitness-class',
+        source: 'openactive',
+        startDate: new Date('2026-03-01T09:00:00'),
+      }),
+      makeEvent({
+        id: 'swim-2',
+        title: 'Lane Swimming',
+        category: 'fitness-class',
+        source: 'openactive',
+        startDate: new Date('2026-03-01T18:00:00'),
+      }),
+      makeEvent({ id: 'play', title: 'Hamlet', startDate: new Date('2026-03-02T19:00:00') }),
     ]);
 
     render(<App />);
@@ -245,32 +257,53 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByRole('heading', { name: /jazz night/i })).toBeInTheDocument();
     });
-
-    const headings = screen
+    const dayHeadings = screen
       .getAllByRole('heading', { level: 2 })
       .map(heading => heading.textContent);
-    expect(headings.slice(0, 3)).toEqual(['Fitness One', 'Fitness Two', 'Jazz Night']);
+    expect(dayHeadings).toEqual(['Today3 events', 'Tomorrow1 event']);
+
+    // Sessions are collapsed until opened, then shown as one card with a time per session
+    expect(screen.queryByRole('heading', { name: /lane swimming/i })).not.toBeInTheDocument();
+    const summary = screen.getByText(/sports & fitness sessions/i);
+    expect(summary).toHaveTextContent('1 activity · 2 sessions');
+    const details = summary.closest('details') as HTMLDetailsElement;
+    details.open = true;
+    fireEvent(details, new Event('toggle'));
+    expect(await screen.findByRole('heading', { name: /lane swimming/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /lane swimming at 18:00/i }));
+    expect(screen.getByRole('heading', { level: 1, name: /lane swimming/i })).toBeInTheDocument();
   });
 
-  it('keeps selected category results in their original order', async () => {
+  it('shows leisure sessions inline when a category filter is selected', async () => {
     mockFetch([
-      makeEvent({ id: 'sport-1', title: 'Park Run', category: 'sport' }),
-      makeEvent({ id: 'sport-2', title: 'Track Meet', category: 'sport' }),
-      makeEvent({ id: 'music-1', title: 'Jazz Night', category: 'live-music' }),
+      makeEvent({
+        id: 'swim-1',
+        title: 'Lane Swimming',
+        category: 'fitness-class',
+        source: 'openactive',
+      }),
     ]);
 
     render(<App />);
+    await waitFor(() => expect(screen.getByLabelText(/fitness/i)).toBeInTheDocument());
+    fireEvent.click(screen.getByLabelText(/fitness/i));
 
-    await waitFor(() => {
-      expect(screen.getByLabelText(/sport/i)).toBeInTheDocument();
-    });
+    expect(screen.getByRole('heading', { name: /lane swimming/i })).toBeInTheDocument();
+    expect(screen.queryByText(/sports & fitness sessions/i)).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByLabelText(/sport/i));
+  it('returns to the list when the browser back button is pressed on an event', async () => {
+    mockFetch([makeEvent({ title: 'Art Show' })]);
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: /view details for art show/i }));
+    expect(screen.getByRole('button', { name: /back to events/i })).toBeInTheDocument();
 
-    const headings = screen
-      .getAllByRole('heading', { level: 2 })
-      .map(heading => heading.textContent);
-    expect(headings).toEqual(['Park Run', 'Track Meet']);
+    window.history.back();
+
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /back to events/i })).not.toBeInTheDocument()
+    );
+    expect(screen.getByRole('heading', { name: /cmout/i })).toBeInTheDocument();
   });
 });
 

@@ -29,7 +29,7 @@ describe('EventDetail', () => {
 
   it('hides the booking link when the event has no valid link', () => {
     render(<EventDetail event={{ ...baseEvent, sourceUrl: '' }} onBack={() => {}} />);
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /book/i })).not.toBeInTheDocument();
   });
 
   it('renders the description', () => {
@@ -79,11 +79,19 @@ describe('EventDetail', () => {
     expect(times[0]).toHaveAttribute('datetime', '2026-07-15T19:30:00.000Z');
   });
 
-  it('renders end time when endDate is provided', () => {
+  it('renders the time range when endDate is provided', () => {
     render(<EventDetail event={baseEvent} onBack={() => {}} />);
-    const times = screen.getAllByRole('time');
-    expect(times).toHaveLength(2);
-    expect(times[1]).toHaveAttribute('datetime', '2026-07-15T22:00:00.000Z');
+    expect(screen.getByRole('time')).toHaveTextContent(/\d{2}:\d{2}–\d{2}:\d{2}/);
+  });
+
+  it('offers directions, add to calendar and share', () => {
+    render(<EventDetail event={baseEvent} onBack={() => {}} />);
+    expect(screen.getByRole('link', { name: /directions/i })).toHaveAttribute(
+      'href',
+      expect.stringContaining('https://www.google.com/maps/search/?api=1&query=')
+    );
+    expect(screen.getByRole('button', { name: /add to calendar/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /share/i })).toBeInTheDocument();
   });
 
   it('renders only one time element when endDate is null', () => {
