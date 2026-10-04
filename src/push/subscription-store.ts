@@ -1,6 +1,6 @@
 import { getStore } from '@netlify/blobs';
 
-export interface PushSubscriptionKeys {
+interface PushSubscriptionKeys {
   auth: string;
   p256dh: string;
 }

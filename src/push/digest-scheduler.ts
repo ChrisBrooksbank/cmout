@@ -15,7 +15,7 @@ import {
   type StoredSubscription,
 } from './subscription-store.js';
 
-export interface DigestEvent {
+interface DigestEvent {
   id: string;
   title: string;
   startDate: string; // ISO 8601
