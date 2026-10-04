@@ -13,10 +13,10 @@ Discover what's on in Chelmsford. A PWA that aggregates local events from multip
 - **One feed for Chelmsford** — gigs, theatre, comedy, fitness classes, sport, community and family events, deduplicated across sources
 - **Day-by-day browsing** — events grouped under Today, Tomorrow and each following day, a week at a time; one-off events come first, while leisure-centre timetables are folded into a "Sports & fitness sessions" section with one card per activity and a button for each session time
 - **Event pages** — readable dates ("Today · 19:30–23:00"), booking link, directions, add to calendar (.ics) and share; the phone's back button returns you to where you were in the list
-- **Quick filters** — Today, Tomorrow, Weekend, This week (Mon–Sun), This month or a specific date, plus category, venue and promoter filters; your filter choices are remembered
+- **Quick filters** — Today, Tomorrow, Weekend, This week (Mon–Sun), This month or a specific date, plus category, venue and promoter filters (tucked behind a single Filters button on phones); your filter choices are remembered
 - **Smart search** — optional semantic search that runs entirely in the browser (Transformers.js, ~23 MB model), so "fun for kids" finds relevant events even without matching keywords; falls back to keyword search
 - **Installable PWA** — works offline from cached data, light/dark/system theme and adjustable text size
-- **Daily digest notifications** — opt-in web push with upcoming events in the categories you choose, without repeats
+- **Daily digest notifications** — opt-in web push with upcoming events in the categories you choose, without repeats; the app only offers notifications once you've come back on a few different days, and "Not now" is remembered for 30 days
 
 ## Data Sources
 
@@ -45,6 +45,16 @@ Put credentials in a `.env` file locally, or in the Netlify environment for depl
 3. **Serverless** — Netlify Functions handle push subscriptions (`/api/subscribe`, stored in Netlify Blobs) and send the daily digest on a schedule.
 
 The site is rebuilt every morning by a GitHub Actions workflow that calls a Netlify build hook, so event data is at most a day old.
+
+### Monitoring
+
+A daily **Site health check** workflow (`.github/workflows/site-health.yml`, also runnable by hand) checks the live site:
+
+- the event data is less than 36 hours old (i.e. the daily rebuild worked);
+- no source has disappeared or dropped by more than half since the previous run — usually the first sign that a site changed its page or API format;
+- a sample of real event links per source still load (404s and server errors count as broken; sites that block automated requests are listed as warnings).
+
+When something fails it opens a GitHub issue labelled `site-health` (or comments on the open one), and closes it once checks pass again. Run it locally with `npx tsx scripts/check-site-health.ts`.
 
 ## Tech Stack
 
@@ -76,7 +86,7 @@ npm run test:run        # Vitest unit tests
 npm run test:e2e        # Playwright end-to-end tests
 ```
 
-The visual regression test (`e2e/visual.spec.ts`) uses fixed data and a frozen clock. After an intended UI change, run the **Update visual snapshots** workflow in GitHub Actions to regenerate its baselines on the Linux runner.
+The visual regression test (`e2e/visual.spec.ts`) uses fixed data and a frozen clock. After an intended UI change, run the **Update visual snapshots** workflow in GitHub Actions (or push a commit to your branch with `[update-snapshots]` in its message) to regenerate its baselines on the Linux runner.
 
 Push notifications need VAPID keys: run `npx tsx scripts/generate-vapid-keys.ts` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`.
 

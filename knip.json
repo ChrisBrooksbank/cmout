@@ -1,6 +1,6 @@
 {
-  "entry": ["src/generate-markdown.ts", "netlify/functions/*.ts"],
-  "project": ["src/**/*.{ts,tsx}", "netlify/functions/*.ts"],
+  "entry": ["src/generate-markdown.ts", "netlify/functions/*.ts", "scripts/*.ts"],
+  "project": ["src/**/*.{ts,tsx}", "netlify/functions/*.ts", "scripts/*.ts"],
   "ignoreDependencies": [
     "workbox-core",
     "workbox-precaching",

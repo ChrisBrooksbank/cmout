@@ -292,6 +292,21 @@ describe('App', () => {
     expect(screen.queryByText(/sports & fitness sessions/i)).not.toBeInTheDocument();
   });
 
+  it('toggles the extra filters and counts the active ones', async () => {
+    mockFetch([makeEvent({ title: 'Community Run', category: 'sport' })]);
+    render(<App />);
+    const toggle = await screen.findByRole('button', { name: /^filters/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(document.getElementById('more-filters')).not.toHaveClass('app__more-filters--open');
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(document.getElementById('more-filters')).toHaveClass('app__more-filters--open');
+
+    fireEvent.click(await screen.findByLabelText(/sport/i));
+    expect(toggle).toHaveTextContent('Filters1');
+  });
+
   it('returns to the list when the browser back button is pressed on an event', async () => {
     mockFetch([makeEvent({ title: 'Art Show' })]);
     render(<App />);

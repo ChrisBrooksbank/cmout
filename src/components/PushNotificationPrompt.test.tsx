@@ -1,6 +1,21 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { vi, afterEach, beforeEach } from 'vitest';
-import PushNotificationPrompt from './PushNotificationPrompt';
+import PushNotificationPrompt, { MIN_VISIT_DAYS } from './PushNotificationPrompt';
+
+const ENGAGEMENT_KEY = 'cmout-push-prompt';
+
+/** A returning visitor who has used the app on enough days to be asked. */
+function seedReturningVisitor(overrides: Record<string, unknown> = {}) {
+  localStorage.setItem(
+    ENGAGEMENT_KEY,
+    JSON.stringify({
+      visitDays: MIN_VISIT_DAYS,
+      lastVisit: '2000-01-01',
+      snoozedUntil: null,
+      ...overrides,
+    })
+  );
+}
 
 function triggerUserInteraction() {
   fireEvent.click(window);
@@ -61,6 +76,8 @@ describe('PushNotificationPrompt', () => {
     originalPushManager = window.PushManager;
     originalServiceWorker = navigator.serviceWorker;
     mockPushSupport();
+    localStorage.clear();
+    seedReturningVisitor();
   });
 
   afterEach(() => {
@@ -220,6 +237,52 @@ describe('PushNotificationPrompt', () => {
     render(<PushNotificationPrompt />);
     act(() => {
       fireEvent.scroll(window);
+    });
+    expect(screen.getByRole('complementary')).toBeInTheDocument();
+  });
+
+  it('does not ask on the first visits', () => {
+    localStorage.clear();
+    mockNotification('default');
+    render(<PushNotificationPrompt />);
+    act(() => {
+      triggerUserInteraction();
+    });
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    const stored = JSON.parse(localStorage.getItem(ENGAGEMENT_KEY) ?? '{}');
+    expect(stored.visitDays).toBe(1);
+  });
+
+  it('counts each day once', () => {
+    localStorage.clear();
+    mockNotification('default');
+    render(<PushNotificationPrompt />).unmount();
+    render(<PushNotificationPrompt />).unmount();
+    expect(JSON.parse(localStorage.getItem(ENGAGEMENT_KEY) ?? '{}').visitDays).toBe(1);
+  });
+
+  it('remembers "Not now" so the prompt stays hidden on later visits', () => {
+    mockNotification('default');
+    const { unmount } = render(<PushNotificationPrompt />);
+    act(() => {
+      triggerUserInteraction();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /not now/i }));
+    unmount();
+
+    render(<PushNotificationPrompt />);
+    act(() => {
+      triggerUserInteraction();
+    });
+    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+  });
+
+  it('asks again once the snooze has expired', () => {
+    seedReturningVisitor({ snoozedUntil: '2000-01-01T00:00:00.000Z' });
+    mockNotification('default');
+    render(<PushNotificationPrompt />);
+    act(() => {
+      triggerUserInteraction();
     });
     expect(screen.getByRole('complementary')).toBeInTheDocument();
   });
