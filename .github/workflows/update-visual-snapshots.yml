@@ -2,18 +2,19 @@ name: Update visual snapshots
 
 # Regenerates the Playwright visual-regression baselines on GitHub's Linux
 # runner (fonts and browser builds differ locally) and commits them to the
-# branch it runs on. Run it manually after an intended UI change.
+# branch it runs on. After an intended UI change, either run it manually or
+# push a commit whose message contains [update-snapshots] to a feature branch.
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '.github/workflows/update-visual-snapshots.yml'
+    branches-ignore: [main, master]
 
 permissions:
   contents: write
 
 jobs:
   update:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[update-snapshots]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

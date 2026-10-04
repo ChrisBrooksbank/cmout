@@ -86,7 +86,7 @@ npm run test:run        # Vitest unit tests
 npm run test:e2e        # Playwright end-to-end tests
 ```
 
-The visual regression test (`e2e/visual.spec.ts`) uses fixed data and a frozen clock. After an intended UI change, run the **Update visual snapshots** workflow in GitHub Actions to regenerate its baselines on the Linux runner.
+The visual regression test (`e2e/visual.spec.ts`) uses fixed data and a frozen clock. After an intended UI change, run the **Update visual snapshots** workflow in GitHub Actions (or push a commit to your branch with `[update-snapshots]` in its message) to regenerate its baselines on the Linux runner.
 
 Push notifications need VAPID keys: run `npx tsx scripts/generate-vapid-keys.ts` and set `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT`.
 
