@@ -1,0 +1,46 @@
+name: Update visual snapshots
+
+# Regenerates the Playwright visual-regression baselines on GitHub's Linux
+# runner (fonts and browser builds differ locally) and commits them to the
+# branch it runs on. Run it manually after an intended UI change.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/update-visual-snapshots.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Regenerate baselines
+        run: npx playwright test e2e/visual.spec.ts --update-snapshots
+
+      - name: Commit baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add e2e/visual.spec.ts-snapshots
+          if git diff --cached --quiet; then
+            echo "Baselines unchanged"
+          else
+            git commit -m "Update visual regression baselines"
+            git push
+          fi
