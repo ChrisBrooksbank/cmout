@@ -47,7 +47,8 @@ export async function generateEmbeddings(
 
   const result: EmbeddingsJson = {
     eventIds: events.map(e => e.id),
-    vectors: allVectors,
+    // 4 decimal places is plenty for cosine ranking and cuts the download ~60%
+    vectors: allVectors.map(v => v.map(x => Math.round(x * 1e4) / 1e4)),
   };
 
   await writeFile(outputPath, JSON.stringify(result), 'utf-8');

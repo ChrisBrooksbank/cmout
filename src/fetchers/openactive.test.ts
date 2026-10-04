@@ -32,6 +32,26 @@ const feeds: Record<string, unknown[]> = {
       modified: '1',
       data: { startDate: '2099-03-10T07:00:00Z', superEvent: SERIES_WITH_SESSIONS },
     },
+    {
+      state: 'updated',
+      kind: 'ScheduledSession',
+      id: 'ss-orphan',
+      modified: '1',
+      data: { startDate: '2099-03-10T09:00:00Z', superEvent: 'https://example.com/missing' },
+    },
+  ],
+  slots: [
+    {
+      state: 'updated',
+      kind: 'Slot',
+      id: 'slot-1',
+      modified: '1',
+      data: {
+        '@id': 'https://example.com/api/slots/SFOOTBALL1_2099-03-10T12-30-00',
+        startDate: '2099-03-10T12:30:00Z',
+        facilityUse: 'https://example.com/facility-uses/football',
+      },
+    },
   ],
 };
 
@@ -40,7 +60,7 @@ afterEach(() => {
 });
 
 describe('openactiveFetcher', () => {
-  it('only emits series placeholders for series without real sessions', async () => {
+  it('emits named sessions only, with placeholders just for series without sessions', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
