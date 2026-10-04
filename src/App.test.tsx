@@ -188,6 +188,29 @@ describe('App', () => {
     expect(screen.getByLabelText(/today/i)).toBeChecked();
   });
 
+  it('drops persisted venue filters for venues no longer in the data', async () => {
+    localStorage.setItem(
+      'cmout-filter-preferences',
+      JSON.stringify({
+        selectedCategories: [],
+        dateRange: 'all',
+        customDate: '',
+        selectedVenues: ['Closed Venue'],
+        selectedPromoters: [],
+      })
+    );
+    mockFetch([makeEvent({ title: 'Art Show', venue: 'Open Venue' })]);
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /art show/i })).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem('cmout-filter-preferences') ?? '{}');
+      expect(stored.selectedVenues).toEqual([]);
+    });
+  });
+
   it('persists category and date filter changes', async () => {
     mockFetch([makeEvent({ title: 'Community Run', category: 'sport' })]);
     render(<App />);
@@ -497,6 +520,30 @@ describe('isInDateRange', () => {
     const thursday = new Date('2026-03-05T14:00:00');
     const ev = makeEvent({ startDate: thursday });
     expect(isInDateRange(ev, 'this-weekend', '')).toBe(false);
+  });
+
+  it('this-week runs Monday to Sunday', () => {
+    vi.setSystemTime(new Date('2026-03-04T10:00:00')); // Wednesday
+    const sunday = makeEvent({ startDate: new Date('2026-03-08T14:00:00') });
+    const nextMonday = makeEvent({ startDate: new Date('2026-03-09T09:00:00') });
+    expect(isInDateRange(sunday, 'this-week', '')).toBe(true);
+    expect(isInDateRange(nextMonday, 'this-week', '')).toBe(false);
+  });
+
+  it('this-week on a Sunday covers the rest of today, not the following week', () => {
+    vi.setSystemTime(new Date('2026-03-08T10:00:00')); // Sunday
+    const laterToday = makeEvent({ startDate: new Date('2026-03-08T19:00:00') });
+    const tuesday = makeEvent({ startDate: new Date('2026-03-10T19:00:00') });
+    expect(isInDateRange(laterToday, 'this-week', '')).toBe(true);
+    expect(isInDateRange(tuesday, 'this-week', '')).toBe(false);
+  });
+
+  it('this-weekend excludes weekend events that have already finished', () => {
+    vi.setSystemTime(new Date('2026-03-08T10:00:00')); // Sunday
+    const fridayNight = makeEvent({ startDate: new Date('2026-03-06T20:00:00') });
+    const sundayEvening = makeEvent({ startDate: new Date('2026-03-08T18:00:00') });
+    expect(isInDateRange(fridayNight, 'this-weekend', '')).toBe(false);
+    expect(isInDateRange(sundayEvening, 'this-weekend', '')).toBe(true);
   });
 
   it('this-week excludes events earlier this week that have already ended', () => {

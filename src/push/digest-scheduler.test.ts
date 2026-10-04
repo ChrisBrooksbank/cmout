@@ -267,6 +267,43 @@ describe('runDailyDigest', () => {
     expect(results[0].sent).toBe(false);
   });
 
+  it('does not resend events included in a previous digest', async () => {
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    const send = vi.fn<SendFn>().mockResolvedValue(undefined);
+    const since = new Date('2026-03-01T00:00:00Z');
+    const first = makeEvent({ id: 'first' });
+    await runDailyDigest([first], since, send);
+
+    const added = makeEvent({ id: 'added', startDate: new Date('2026-03-03T10:00:00Z') });
+    const results = await runDailyDigest([first, added], since, send);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(send.mock.calls[1][1].events.map(e => e.id)).toEqual(['added']);
+    expect(results[0].eventCount).toBe(1);
+
+    const again = await runDailyDigest([first, added], since, send);
+    expect(send).toHaveBeenCalledTimes(2);
+    expect(again[0].sent).toBe(false);
+  });
+
+  it('only includes events starting within the next week', async () => {
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    const send = vi.fn<SendFn>().mockResolvedValue(undefined);
+    const since = new Date('2026-03-01T00:00:00Z');
+    const soon = makeEvent({ id: 'soon', startDate: new Date('2026-03-05T10:00:00Z') });
+    const later = makeEvent({ id: 'later', startDate: new Date('2026-03-20T10:00:00Z') });
+    await runDailyDigest([soon, later], since, send);
+    expect(send.mock.calls[0][1].events.map(e => e.id)).toEqual(['soon']);
+  });
+
+  it('excludes events that have already started when no sinceDate is given', async () => {
+    await addSubscription(makePushSub(), { categories: ['live-music'], frequency: 'daily-digest' });
+    const send = vi.fn<SendFn>().mockResolvedValue(undefined);
+    const past = makeEvent({ id: 'past', startDate: new Date(Date.now() - 60 * 60 * 1000) });
+    const results = await runDailyDigest([past], undefined, send);
+    expect(send).not.toHaveBeenCalled();
+    expect(results[0].sent).toBe(false);
+  });
+
   it('processes multiple daily-digest subscribers independently', async () => {
     await addSubscription(makePushSub('https://push.example.com/ep-1'), {
       categories: ['live-music'],

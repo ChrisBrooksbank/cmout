@@ -172,15 +172,18 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
     sundayEnd.setDate(friday.getDate() + 2);
     sundayEnd.setHours(23, 59, 59, 999);
 
-    if (start >= friday && start <= sundayEnd) return true;
-    if (start < friday && event.endDate && event.endDate >= friday) return true;
+    // Once the weekend has started, don't show events that are already over
+    const from = friday > now ? friday : now;
+    if (start >= from && start <= sundayEnd) return true;
+    if (start < from && event.endDate && event.endDate >= from) return true;
     return false;
   }
 
   if (range === 'this-week') {
     const startOfWeek = new Date(now);
     startOfWeek.setHours(0, 0, 0, 0);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // Weeks run Monday–Sunday (UK convention)
+    startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 7);
     if (start >= now && start < endOfWeek) return true;
@@ -315,7 +318,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { settings, setTheme, setFontSize } = useAppSettings();
-  const { phase, embeddings, modelReady, onQueryStart, acceptSmartSearch, declineSmartSearch } =
+  const { phase, embeddings, onQueryStart, acceptSmartSearch, declineSmartSearch } =
     useSmartSearch();
   const [semanticResults, setSemanticResults] = useState<CmEvent[] | undefined>(undefined);
   const prevQueryRef = useRef('');
@@ -327,7 +330,14 @@ export default function App() {
         return res.json() as Promise<{ events: RawEvent[] }>;
       })
       .then(eventsData => {
-        setEvents(eventsData.events.map(hydrateEvent));
+        const loaded = eventsData.events.map(hydrateEvent);
+        setEvents(loaded);
+        // Drop saved venue/promoter selections that no longer appear in the data,
+        // otherwise they filter out everything while being invisible in the lists
+        const venues = new Set(loaded.map(ev => ev.venue));
+        const promoters = new Set(loaded.map(ev => ev.promoter));
+        setSelectedVenues(prev => prev.filter(v => venues.has(v)));
+        setSelectedPromoters(prev => prev.filter(p => promoters.has(p)));
         setLoading(false);
       })
       .catch((err: unknown) => {
@@ -348,7 +358,7 @@ export default function App() {
 
   // Run semantic search when query changes and model is ready
   useEffect(() => {
-    if (!searchQuery || !modelReady || !embeddings) {
+    if (!searchQuery || phase !== 'ready' || !embeddings) {
       setSemanticResults(undefined);
       return;
     }
@@ -361,7 +371,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [searchQuery, modelReady, embeddings, events]);
+  }, [searchQuery, phase, embeddings, events]);
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -410,7 +420,7 @@ export default function App() {
   const filteredEvents = filterEvents(
     events,
     filterOptions,
-    searchQuery && modelReady ? semanticResults : undefined
+    searchQuery && phase === 'ready' ? semanticResults : undefined
   );
   const hasFocusedFilter =
     searchQuery.trim() !== '' ||

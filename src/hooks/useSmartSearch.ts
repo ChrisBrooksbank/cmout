@@ -37,7 +37,11 @@ interface UseSmartSearchReturn {
 }
 
 export default function useSmartSearch(): UseSmartSearchReturn {
-  const [phase, setPhase] = useState<SmartSearchPhase>('idle');
+  // Start as 'disabled' if the user previously turned smart search off, so the
+  // settings toggle reflects the stored preference before any query is typed
+  const [phase, setPhase] = useState<SmartSearchPhase>(() =>
+    getStoredPref() === 'disabled' ? 'disabled' : 'idle'
+  );
   const [embeddings, setEmbeddings] = useState<Embeddings | null>(null);
   const [modelReady, setModelReady] = useState(false);
   const loadStarted = useRef(false);
@@ -68,8 +72,13 @@ export default function useSmartSearch(): UseSmartSearchReturn {
       .then(([embeddingsData]) => {
         setEmbeddings(embeddingsData);
         setModelReady(true);
-        setPhase('ready');
-        setStoredPref('enabled');
+        // The user may have switched smart search off while it was loading
+        if (getStoredPref() === 'disabled') {
+          setPhase('disabled');
+        } else {
+          setPhase('ready');
+          setStoredPref('enabled');
+        }
       })
       .catch(() => {
         setPhase('error');
@@ -96,9 +105,11 @@ export default function useSmartSearch(): UseSmartSearchReturn {
   }, [phase, loadSmartSearch]);
 
   const acceptSmartSearch = useCallback(() => {
+    setStoredPref('enabled');
     if (modelReady) {
-      setStoredPref('enabled');
       setPhase('ready');
+    } else if (loadStarted.current) {
+      setPhase('loading');
     } else {
       loadSmartSearch();
     }

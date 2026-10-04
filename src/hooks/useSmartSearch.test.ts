@@ -136,6 +136,33 @@ describe('useSmartSearch', () => {
     expect(result.current.phase).toBe('disabled');
   });
 
+  it('starts disabled when the stored preference is disabled', () => {
+    localStorage.setItem('cmout-smart-search-pref', 'disabled');
+    const { result } = renderHook(() => useSmartSearch());
+    expect(result.current.phase).toBe('disabled');
+  });
+
+  it('stays disabled if turned off while the model is loading', async () => {
+    let resolveModel: () => void = () => {};
+    mockInitModel.mockReturnValue(new Promise<void>(r => (resolveModel = r)));
+    const { result } = renderHook(() => useSmartSearch());
+
+    act(() => {
+      result.current.onQueryStart();
+    });
+    expect(result.current.phase).toBe('loading');
+
+    act(() => {
+      result.current.declineSmartSearch();
+    });
+    await act(async () => {
+      resolveModel();
+    });
+
+    expect(result.current.phase).toBe('disabled');
+    expect(localStorage.getItem('cmout-smart-search-pref')).toBe('disabled');
+  });
+
   it('recalls enabled preference and skips prompt on slow connection', async () => {
     localStorage.setItem('cmout-smart-search-pref', 'enabled');
     mockGetConnectionQuality.mockReturnValue('slow');
