@@ -124,6 +124,20 @@ export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
 }
 
 /**
+ * Check that a link looks usable: absolute http(s) URL with no "undefined"/"null"
+ * left over from a missing field (e.g. `https://dice.fm/event/undefined`).
+ */
+export function isValidSourceUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+    return !/(^|[/=?&])(undefined|null|NaN)([/?&#]|$)/.test(`${parsed.pathname}${parsed.search}`);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Truncate string to maxLen, adding ellipsis if needed.
  */
 export function truncate(s: string, maxLen: number): string {

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import type { CmEvent, FetchResult, Fetcher, EventSource } from './types.js';
-import { deduplicateEvents, truncate } from './utils.js';
+import { deduplicateEvents, isValidSourceUrl, truncate } from './utils.js';
 import {
   openactiveFetcher,
   skiddleFetcher,
@@ -54,6 +54,16 @@ export async function aggregateEvents(sources?: EventSource[]): Promise<Aggregat
     const result = results[i];
     if (result.status === 'fulfilled') {
       fetchResults.push(result.value);
+      // Flag broken links (usually a source changing its data format) and drop
+      // them so the UI doesn't offer a link that 404s
+      const badLinks = result.value.events.filter(ev => !isValidSourceUrl(ev.sourceUrl));
+      if (badLinks.length > 0) {
+        result.value.errors.push(
+          `${badLinks.length} event(s) with an invalid link, e.g. "${badLinks[0].sourceUrl}" ` +
+            `for "${badLinks[0].title}" — the source's data format may have changed`
+        );
+        for (const ev of badLinks) ev.sourceUrl = '';
+      }
       allEvents.push(...result.value.events);
     } else {
       const name = fetchers[i].name;

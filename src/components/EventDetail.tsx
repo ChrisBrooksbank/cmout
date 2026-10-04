@@ -87,16 +87,18 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
 
         {description && <p className="event-detail__description">{description}</p>}
 
-        <a
-          href={sourceUrl}
-          className="event-detail__source-link"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          {sourceUrl.includes('gladstonego.cloud')
-            ? 'Book at Chelmsford City Sports'
-            : 'More info / Book tickets'}
-        </a>
+        {sourceUrl && (
+          <a
+            href={sourceUrl}
+            className="event-detail__source-link"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {sourceUrl.includes('gladstonego.cloud')
+              ? 'Book at Chelmsford City Sports'
+              : 'More info / Book tickets'}
+          </a>
+        )}
       </div>
     </article>
   );

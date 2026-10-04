@@ -5,7 +5,7 @@ import { writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { CmEvent } from './types.js';
-import { aggregateEvents } from './aggregator.js';
+import { aggregateEvents, type AggregateResult } from './aggregator.js';
 import { generateEmbeddings } from './embeddings/generate.js';
 
 /** CmEvent with Date fields serialised as ISO strings for JSON consumption */
@@ -31,6 +31,12 @@ function serializeEvent(ev: CmEvent): SerializedCmEvent {
 const DEFAULT_OUTPUT = join(process.cwd(), 'public', 'events.json');
 
 export async function buildEventsJson(outputPath: string = DEFAULT_OUTPUT): Promise<EventsJson> {
+  return (await buildEventsJsonWithReport(outputPath)).output;
+}
+
+async function buildEventsJsonWithReport(
+  outputPath: string = DEFAULT_OUTPUT
+): Promise<{ output: EventsJson; result: AggregateResult }> {
   const result = await aggregateEvents();
 
   const output: EventsJson = {
@@ -42,7 +48,7 @@ export async function buildEventsJson(outputPath: string = DEFAULT_OUTPUT): Prom
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, JSON.stringify(output, null, 2), 'utf-8');
 
-  return output;
+  return { output, result };
 }
 
 const DEFAULT_EMBEDDINGS_OUTPUT = join(process.cwd(), 'public', 'embeddings.json');
@@ -57,8 +63,13 @@ export async function buildEmbeddingsJson(
 
 async function main() {
   console.log('Building public/events.json...');
-  const output = await buildEventsJson();
+  const { output, result } = await buildEventsJsonWithReport();
   console.log(`Written ${output.totalEvents} events to public/events.json`);
+
+  // Surface per-source problems (failed fetches, broken links) in the build log
+  for (const r of result.rawResults) {
+    for (const err of r.errors) console.warn(`[${r.source}] ${err}`);
+  }
 
   console.log('Building public/embeddings.json...');
   await buildEmbeddingsJson(output.events);

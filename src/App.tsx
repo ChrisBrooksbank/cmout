@@ -102,7 +102,7 @@ function validDateRange(value: unknown): DateRange {
   return DATE_RANGES.includes(value as DateRange) ? (value as DateRange) : 'all';
 }
 
-export function loadPersistedFilters(): PersistedFilterOptions {
+function loadPersistedFilters(): PersistedFilterOptions {
   try {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY);
     if (!stored) return defaultPersistedFilters;

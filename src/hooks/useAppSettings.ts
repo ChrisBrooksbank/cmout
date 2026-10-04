@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 export type Theme = 'dark' | 'light' | 'system';
 export type FontSize = 'small' | 'medium' | 'large';
 
-export interface AppSettings {
+interface AppSettings {
   theme: Theme;
   fontSize: FontSize;
 }

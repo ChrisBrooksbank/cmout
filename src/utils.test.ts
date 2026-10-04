@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { CmEvent } from './types.js';
-import { deduplicateEvents } from './utils.js';
+import { deduplicateEvents, isValidSourceUrl } from './utils.js';
 
 function makeEvent(overrides: Partial<CmEvent> = {}): CmEvent {
   return {
@@ -71,5 +71,25 @@ describe('deduplicateEvents', () => {
       makeEvent({ id: 'tm', source: 'ticketmaster', startDate: new Date(2026, 2, 10, 19, 30) }),
     ];
     expect(deduplicateEvents(events)).toHaveLength(1);
+  });
+});
+
+describe('isValidSourceUrl', () => {
+  it('accepts normal event links', () => {
+    expect(isValidSourceUrl('https://dice.fm/event/692f29724c69ef0001cfa9b6')).toBe(true);
+    expect(
+      isValidSourceUrl(
+        'https://chelmsfordcitysports.gladstonego.cloud/book/calendar/X?activityDate=2026-03-01T10:00:00.000Z'
+      )
+    ).toBe(true);
+    expect(isValidSourceUrl('https://example.com/events/undefined-behaviour-talk')).toBe(true);
+  });
+
+  it('rejects links built from missing fields', () => {
+    expect(isValidSourceUrl('https://dice.fm/event/undefined')).toBe(false);
+    expect(isValidSourceUrl('https://example.com/e?id=null')).toBe(false);
+    expect(isValidSourceUrl('')).toBe(false);
+    expect(isValidSourceUrl('/event/123')).toBe(false);
+    expect(isValidSourceUrl('javascript:alert(1)')).toBe(false);
   });
 });

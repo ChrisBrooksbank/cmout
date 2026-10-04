@@ -27,6 +27,11 @@ describe('EventDetail', () => {
     expect(screen.getByRole('heading', { name: /summer jazz night/i })).toBeInTheDocument();
   });
 
+  it('hides the booking link when the event has no valid link', () => {
+    render(<EventDetail event={{ ...baseEvent, sourceUrl: '' }} onBack={() => {}} />);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
   it('renders the description', () => {
     render(<EventDetail event={baseEvent} onBack={() => {}} />);
     expect(screen.getByText(/wonderful jazz evening/i)).toBeInTheDocument();
