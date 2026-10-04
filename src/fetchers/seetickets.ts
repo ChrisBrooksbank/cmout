@@ -106,15 +106,16 @@ function jsonLdPrice(offers: JsonLdEvent['offers']): string | null {
   return String(price);
 }
 
-function mapCategory(name: string, description: string): EventCategory {
+export function mapCategory(name: string, description: string): EventCategory {
   const text = `${name} ${description}`.toLowerCase();
-  if (/music|gig|concert|band|live act|tribute/.test(text)) return 'live-music';
+  if (/music|\bgigs?\b|concert|\bbands?\b|live act|tribute/.test(text)) return 'live-music';
   if (/comedy|theatre|theater|drama|pantomime|cabaret/.test(text)) return 'theatre-comedy';
-  if (/festival|fair|fete|carnival/.test(text)) return 'festival';
-  if (/race|racing|equestrian|horse/.test(text)) return 'sport';
+  if (/festival|\bfairs?\b|\bfete\b|carnival/.test(text)) return 'festival';
+  if (/\b(race|races|raceday|racing)\b|racecourse|equestrian|horse/.test(text)) return 'sport';
   if (/kids|children|family|baby/.test(text)) return 'kids';
-  if (/community|talk|lecture|workshop/.test(text)) return 'community';
-  if (/fitness|run|walk|sport|golf|cricket|football/.test(text)) return 'sport';
+  if (/community|\btalks?\b|lecture|workshop/.test(text)) return 'community';
+  if (/fitness|\b(run|running|walk|walking)\b|sport|golf|cricket|football/.test(text))
+    return 'sport';
   return 'other';
 }
 

@@ -58,21 +58,25 @@ interface OutsavvyResponse {
   results: OutsavvyEvent[];
 }
 
-function mapCategory(name: string, description: string): EventCategory {
+export function mapCategory(name: string, description: string): EventCategory {
   const text = `${name} ${description}`.toLowerCase();
   if (/\byoga\b|pilates|zumba|aerobics|barre/.test(text)) return 'fitness-class';
-  if (/fitness|gym|workout|exercise|run|walk|swim|cycle|bootcamp|hiit/.test(text))
+  if (
+    /fitness|\bgym\b|workout|exercise|\b(run|runs|running|walk|walks|walking|swim|swimming|cycle|cycling)\b|bootcamp|\bhiit\b/.test(
+      text
+    )
+  )
     return 'fitness-class';
-  if (/music|gig|concert|band|live act/.test(text)) return 'live-music';
+  if (/music|\bgigs?\b|concert|\bbands?\b|live act/.test(text)) return 'live-music';
   if (/comedy|theatre|theater|drama|pantomime|cabaret/.test(text)) return 'theatre-comedy';
-  if (/festival|fair|fete|carnival/.test(text)) return 'festival';
+  if (/festival|\bfairs?\b|\bfete\b|carnival/.test(text)) return 'festival';
   if (/kids|children|family|baby|toddler|nursery/.test(text)) return 'kids';
   if (/church|faith|prayer|worship|spiritual|meditation/.test(text)) return 'church-faith';
   if (/sport|cricket|football|rugby|tennis|netball|golf/.test(text)) return 'sport';
   if (/market|craft|artisan|food.*stall/.test(text)) return 'community';
-  if (/community|meetup|social|network|volunteer|talk|workshop|class/.test(text))
+  if (/community|meetup|social|network|volunteer|\btalks?\b|workshop|\bclass(es)?\b/.test(text))
     return 'community';
-  if (/pub|bar|club|nightlife/.test(text)) return 'pub-bar';
+  if (/\b(pub|pubs|bar|bars|club|clubs)\b|nightlife/.test(text)) return 'pub-bar';
   return 'other';
 }
 

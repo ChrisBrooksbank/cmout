@@ -16,14 +16,25 @@ const FONT_SIZE_PX: Record<FontSize, string> = {
   large: '17px',
 };
 
+const THEMES: Theme[] = ['dark', 'light', 'system'];
+
 function loadSettings(): AppSettings {
+  const settings: AppSettings = { theme: 'system', fontSize: 'medium' };
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return { theme: 'system', fontSize: 'medium', ...JSON.parse(stored) };
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    if (typeof parsed === 'object' && parsed !== null) {
+      // Ignore unknown values, which would otherwise break the theme/font size
+      const { theme, fontSize } = parsed as Record<string, unknown>;
+      if (THEMES.includes(theme as Theme)) settings.theme = theme as Theme;
+      if (typeof fontSize === 'string' && Object.hasOwn(FONT_SIZE_PX, fontSize)) {
+        settings.fontSize = fontSize as FontSize;
+      }
+    }
   } catch {
     /* ignore */
   }
-  return { theme: 'system', fontSize: 'medium' };
+  return settings;
 }
 
 function saveSettings(s: AppSettings) {

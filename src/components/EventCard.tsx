@@ -36,7 +36,7 @@ export default function EventCard({ event }: EventCardProps) {
 
   return (
     <article className="event-card" data-category={category}>
-      {imageUrl && <img src={imageUrl} alt={title} className="event-card__image" />}
+      {imageUrl && <img src={imageUrl} alt={title} className="event-card__image" loading="lazy" />}
       <div className="event-card__body">
         <span className="event-card__category">{CATEGORY_LABELS[category]}</span>
         <h2 className="event-card__title">{title}</h2>

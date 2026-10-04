@@ -55,6 +55,8 @@ function filters(overrides: Partial<FilterOptions> = {}): FilterOptions {
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
+  // Pin "now" before the fixture dates so they count as upcoming
+  vi.setSystemTime(new Date('2026-03-01T08:00:00'));
   localStorage.clear();
 });
 
@@ -383,10 +385,34 @@ describe('filterEvents', () => {
     expect(result[0].id).toBe('spanning');
   });
 
-  it('date range all returns everything', () => {
-    const pastEvent = makeEvent({ id: 'past', startDate: new Date('2020-01-01T12:00:00Z') });
+  it('date range all returns every upcoming event', () => {
     const futureEvent = makeEvent({ id: 'future', startDate: new Date('2099-01-01T12:00:00Z') });
-    expect(filterEvents([pastEvent, futureEvent], filters())).toHaveLength(2);
+    const result = filterEvents([futureEvent], filters());
+    expect(result.map(e => e.id)).toEqual(['future']);
+  });
+
+  it('date range all hides events that have finished but keeps today and ongoing ones', () => {
+    vi.setSystemTime(new Date('2026-03-04T15:00:00'));
+    const events = [
+      makeEvent({ id: 'yesterday', startDate: new Date('2026-03-03T19:00:00') }),
+      makeEvent({
+        id: 'ended-today',
+        startDate: new Date('2026-03-04T10:00:00'),
+        endDate: new Date('2026-03-04T11:00:00'),
+      }),
+      makeEvent({ id: 'earlier-today-no-end', startDate: new Date('2026-03-04T09:00:00') }),
+      makeEvent({
+        id: 'ongoing',
+        startDate: new Date('2026-03-01T10:00:00'),
+        endDate: new Date('2026-03-10T17:00:00'),
+      }),
+      makeEvent({ id: 'tomorrow', startDate: new Date('2026-03-05T19:00:00') }),
+    ];
+    expect(filterEvents(events, filters()).map(e => e.id)).toEqual([
+      'earlier-today-no-end',
+      'ongoing',
+      'tomorrow',
+    ]);
   });
 
   it('filters by venue', () => {

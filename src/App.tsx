@@ -134,7 +134,12 @@ export function isInDateRange(event: CmEvent, range: DateRange, customDate: stri
   const now = new Date();
   const start = event.startDate;
 
-  if (range === 'all') return true;
+  if (range === 'all') {
+    // Hide events that are over (data can be up to a day old, or served from cache)
+    if (event.endDate) return event.endDate >= now;
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return start >= todayStart;
+  }
 
   if (range === 'today') {
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());

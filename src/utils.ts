@@ -30,14 +30,36 @@ function normalise(s: string): string {
     .trim();
 }
 
+/** Sources default to midnight when they don't publish a start time. */
+function hasKnownTime(d: Date): boolean {
+  return d.getHours() !== 0 || d.getMinutes() !== 0;
+}
+
+/** Max start-time gap for listings of the same event (e.g. doors vs. show time). */
+const DUPLICATE_TIME_TOLERANCE_MS = 2 * 60 * 60 * 1000;
+
 /**
- * Check if two events are likely duplicates.
- * Matches on normalised title similarity + same date + similar venue.
+ * Check if two events from different sources are likely duplicates.
+ * Matches on normalised title similarity + same date (and similar time, when
+ * both sources publish one) + similar venue.
  */
 function isDuplicate(a: CmEvent, b: CmEvent): boolean {
+  // Each source's own IDs are unique, so repeats within one source are
+  // separate occurrences (e.g. several swim sessions on the same day)
+  if (a.source === b.source) return false;
+
   // Must be on the same day
   const sameDay = a.startDate.toDateString() === b.startDate.toDateString();
   if (!sameDay) return false;
+
+  // ...and at roughly the same time (e.g. not a matinee vs. evening show)
+  if (
+    hasKnownTime(a.startDate) &&
+    hasKnownTime(b.startDate) &&
+    Math.abs(a.startDate.getTime() - b.startDate.getTime()) > DUPLICATE_TIME_TOLERANCE_MS
+  ) {
+    return false;
+  }
 
   const titleA = normalise(a.title);
   const titleB = normalise(b.title);
@@ -87,7 +109,11 @@ export function deduplicateEvents(events: CmEvent[]): CmEvent[] {
   );
 
   const result: CmEvent[] = [];
+  const seenIds = new Set<string>();
   for (const event of sorted) {
+    // The same listing can appear twice within a source (e.g. across result pages)
+    if (seenIds.has(event.id)) continue;
+    seenIds.add(event.id);
     const hasDupe = result.some(existing => isDuplicate(existing, event));
     if (!hasDupe) {
       result.push(event);
