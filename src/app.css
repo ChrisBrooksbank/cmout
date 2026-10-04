@@ -275,9 +275,91 @@ fieldset {
 /* ----- Date Range Filter ----- */
 .date-range-filter {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* One row of chips that scrolls sideways on narrow screens */
+.date-range-filter__chips {
+  display: flex;
   gap: 8px;
   align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  /* Bleed to the screen edge so chips scroll under the page gutter */
+  margin: 0 -16px;
+  padding: 2px 16px;
+  scroll-padding-inline: 16px;
+}
+
+.date-range-filter__chips::-webkit-scrollbar {
+  display: none;
+}
+
+.date-range-filter__label {
+  flex-shrink: 0;
+}
+
+/* ----- Filters toggle (phones/tablets) ----- */
+.app__filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.app__filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+}
+
+.app__filters-toggle[aria-expanded='true'] {
+  border-color: var(--border-focus);
+}
+
+.app__filters-toggle::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform var(--transition);
+}
+
+.app__filters-toggle[aria-expanded='true']::after {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.app__filters-toggle-count {
+  min-width: 20px;
+  padding: 1px 6px;
+  font-size: 0.75rem;
+  text-align: center;
+  color: #fff;
+  background: var(--accent);
+  border-radius: var(--radius-full);
+}
+
+.app__filter-bar .filter-clear-all {
+  align-self: center;
+}
+
+.app__more-filters {
+  display: none;
+}
+
+.app__more-filters--open {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .date-range-filter__legend {
@@ -1044,6 +1126,12 @@ fieldset {
     gap: 20px;
   }
 
+  .date-range-filter__chips {
+    margin: 0 -24px;
+    padding: 2px 24px;
+    scroll-padding-inline: 24px;
+  }
+
   .event-list {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1075,6 +1163,24 @@ fieldset {
     align-self: flex-start;
     width: 260px;
     flex-shrink: 0;
+  }
+
+  /* Desktop sidebar has room for everything */
+  .date-range-filter__chips {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+  }
+
+  .app__filters-toggle {
+    display: none;
+  }
+
+  .app__more-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
   }
 
   .app__content {

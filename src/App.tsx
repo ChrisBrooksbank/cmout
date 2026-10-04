@@ -308,6 +308,8 @@ export default function App() {
   }, [selectedEvent]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Phones/tablets: category, venue and promoter filters sit behind one button
+  const [moreFiltersOpen, setMoreFiltersOpen] = useState(false);
 
   const { settings, setTheme, setFontSize } = useAppSettings();
   const { phase, embeddings, onQueryStart, acceptSmartSearch, declineSmartSearch } =
@@ -429,11 +431,9 @@ export default function App() {
     selectedPromoters,
   ]);
 
-  const totalFilterCount =
-    selectedCategories.length +
-    selectedVenues.length +
-    selectedPromoters.length +
-    (dateRange === 'all' ? 0 : 1);
+  const listFilterCount =
+    selectedCategories.length + selectedVenues.length + selectedPromoters.length;
+  const totalFilterCount = listFilterCount + (dateRange === 'all' ? 0 : 1);
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -519,20 +519,39 @@ export default function App() {
             customDate={customDate}
             onCustomDateChange={setCustomDate}
           />
-          <FilterSection label="Categories" activeCount={selectedCategories.length}>
-            {categoryFilter}
-          </FilterSection>
-          <FilterSection label="Venues" activeCount={selectedVenues.length}>
-            {venueFilter}
-          </FilterSection>
-          <FilterSection label="Promoters" activeCount={selectedPromoters.length}>
-            {promoterFilter}
-          </FilterSection>
-          {totalFilterCount > 0 && (
-            <button type="button" className="filter-clear-all" onClick={clearAllFilters}>
-              Clear all filters
+          <div className="app__filter-bar">
+            <button
+              type="button"
+              className="app__filters-toggle"
+              aria-expanded={moreFiltersOpen}
+              aria-controls="more-filters"
+              onClick={() => setMoreFiltersOpen(open => !open)}
+            >
+              Filters
+              {listFilterCount > 0 && (
+                <span className="app__filters-toggle-count">{listFilterCount}</span>
+              )}
             </button>
-          )}
+            {totalFilterCount > 0 && (
+              <button type="button" className="filter-clear-all" onClick={clearAllFilters}>
+                Clear all filters
+              </button>
+            )}
+          </div>
+          <div
+            id="more-filters"
+            className={`app__more-filters${moreFiltersOpen ? ' app__more-filters--open' : ''}`}
+          >
+            <FilterSection label="Categories" activeCount={selectedCategories.length}>
+              {categoryFilter}
+            </FilterSection>
+            <FilterSection label="Venues" activeCount={selectedVenues.length}>
+              {venueFilter}
+            </FilterSection>
+            <FilterSection label="Promoters" activeCount={selectedPromoters.length}>
+              {promoterFilter}
+            </FilterSection>
+          </div>
         </aside>
 
         <section className="app__content" aria-label="Events">
