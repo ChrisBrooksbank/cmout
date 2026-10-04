@@ -1,0 +1,85 @@
+name: Site health check
+
+# Daily check of the live site: is the event data fresh, did any source suddenly
+# drop (usually a sign that it changed its page or API format), and do a sample
+# of real event links still work? Problems are reported in a GitHub issue
+# labelled "site-health", which is closed again once checks pass.
+on:
+  schedule:
+    # After the 05:00 UTC daily rebuild (daily-events.yml) has had time to deploy
+    - cron: '40 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Restore previous event counts
+        uses: actions/cache/restore@v4
+        with:
+          path: .site-health/counts.json
+          key: site-health-counts-${{ github.run_id }}
+          restore-keys: site-health-counts-
+
+      - name: Run health check
+        id: health
+        env:
+          PREVIOUS_COUNTS: .site-health/counts.json
+          COUNTS_OUT: .site-health/counts-new.json
+          REPORT_OUT: .site-health/report.md
+        run: |
+          mkdir -p .site-health
+          if npx tsx scripts/check-site-health.ts; then
+            echo "problems=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "problems=true" >> "$GITHUB_OUTPUT"
+          fi
+          cat .site-health/report.md >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .site-health/counts-new.json ]; then
+            mv .site-health/counts-new.json .site-health/counts.json
+          fi
+
+      - name: Save event counts for the next run
+        if: hashFiles('.site-health/counts.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: .site-health/counts.json
+          key: site-health-counts-${{ github.run_id }}
+
+      - name: Open, update or close the site-health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PROBLEMS: ${{ steps.health.outputs.problems }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create site-health --color d93f0b \
+            --description "Automated live site health check" 2>/dev/null || true
+          issue=$(gh issue list --label site-health --state open --json number --jq '.[0].number')
+          { cat .site-health/report.md; echo; echo "[Workflow run]($RUN_URL)"; } > .site-health/body.md
+
+          if [ "$PROBLEMS" = "true" ]; then
+            if [ -n "$issue" ]; then
+              gh issue comment "$issue" --body-file .site-health/body.md
+            else
+              gh issue create --label site-health \
+                --title "Site health check found problems" --body-file .site-health/body.md
+            fi
+          elif [ -n "$issue" ]; then
+            gh issue comment "$issue" --body-file .site-health/body.md
+            gh issue close "$issue" --reason completed
+          fi
