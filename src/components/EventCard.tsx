@@ -1,4 +1,5 @@
 import type { CmEvent, EventCategory } from '../types';
+import { formatDistanceMiles } from '../utils/distance';
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
   'live-music': 'Live Music',
@@ -29,16 +30,22 @@ function formatTime(date: Date): string {
 
 interface EventCardProps {
   event: CmEvent;
+  distanceMiles?: number | null;
 }
 
-export default function EventCard({ event }: EventCardProps) {
+export default function EventCard({ event, distanceMiles = null }: EventCardProps) {
   const { title, startDate, endDate, venue, category, price, imageUrl } = event;
 
   return (
     <article className="event-card" data-category={category}>
       {imageUrl && <img src={imageUrl} alt={title} className="event-card__image" />}
       <div className="event-card__body">
-        <span className="event-card__category">{CATEGORY_LABELS[category]}</span>
+        <div className="event-card__meta">
+          <span className="event-card__category">{CATEGORY_LABELS[category]}</span>
+          {distanceMiles !== null && (
+            <span className="event-card__distance">{formatDistanceMiles(distanceMiles)}</span>
+          )}
+        </div>
         <h2 className="event-card__title">{title}</h2>
         <p className="event-card__date">
           <time dateTime={startDate.toISOString()}>

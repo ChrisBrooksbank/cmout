@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { CmEvent, EventCategory } from '../types';
+import { formatDistanceMiles } from '../utils/distance';
 
 const CATEGORY_LABELS: Record<EventCategory, string> = {
   'live-music': 'Live Music',
@@ -31,9 +32,10 @@ function formatTime(date: Date): string {
 interface EventDetailProps {
   event: CmEvent;
   onBack: () => void;
+  distanceMiles?: number | null;
 }
 
-export default function EventDetail({ event, onBack }: EventDetailProps) {
+export default function EventDetail({ event, onBack, distanceMiles = null }: EventDetailProps) {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
@@ -61,7 +63,12 @@ export default function EventDetail({ event, onBack }: EventDetailProps) {
       {imageUrl && <img src={imageUrl} alt={title} className="event-detail__image" />}
 
       <div className="event-detail__body">
-        <span className="event-detail__category">{CATEGORY_LABELS[category]}</span>
+        <div className="event-detail__meta">
+          <span className="event-detail__category">{CATEGORY_LABELS[category]}</span>
+          {distanceMiles !== null && (
+            <span className="event-detail__distance">{formatDistanceMiles(distanceMiles)}</span>
+          )}
+        </div>
         <h1 className="event-detail__title">{title}</h1>
 
         <p className="event-detail__date">

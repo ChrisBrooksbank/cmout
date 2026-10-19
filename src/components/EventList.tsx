@@ -4,9 +4,10 @@ import EventCard from './EventCard';
 interface EventListProps {
   events: CmEvent[];
   onSelect?: (event: CmEvent) => void;
+  getDistanceMiles?: (event: CmEvent) => number | null;
 }
 
-export default function EventList({ events, onSelect }: EventListProps) {
+export default function EventList({ events, onSelect, getDistanceMiles }: EventListProps) {
   if (events.length === 0) {
     return <p className="event-list__empty">No events found. Try adjusting your filters.</p>;
   }
@@ -21,10 +22,10 @@ export default function EventList({ events, onSelect }: EventListProps) {
               onClick={() => onSelect(event)}
               aria-label={`View details for ${event.title}`}
             >
-              <EventCard event={event} />
+              <EventCard event={event} distanceMiles={getDistanceMiles?.(event) ?? null} />
             </button>
           ) : (
-            <EventCard event={event} />
+            <EventCard event={event} distanceMiles={getDistanceMiles?.(event) ?? null} />
           )}
         </li>
       ))}

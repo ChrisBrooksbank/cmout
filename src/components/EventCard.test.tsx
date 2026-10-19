@@ -41,6 +41,11 @@ describe('EventCard', () => {
     expect(screen.getByText('£10')).toBeInTheDocument();
   });
 
+  it('renders distance when provided', () => {
+    render(<EventCard event={baseEvent} distanceMiles={1.24} />);
+    expect(screen.getByText('1.2 mi away')).toBeInTheDocument();
+  });
+
   it('renders the image when imageUrl is provided', () => {
     render(<EventCard event={baseEvent} />);
     const img = screen.getByRole('img', { name: /summer jazz night/i });

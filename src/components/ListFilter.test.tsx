@@ -17,6 +17,18 @@ describe('ListFilter', () => {
     expect(screen.getByText('Hot Box')).toBeInTheDocument();
   });
 
+  it('renders optional item metadata', () => {
+    render(
+      <ListFilter
+        legend="Venues"
+        items={[{ name: 'Riverside Leisure Centre', count: 42, meta: '1.2 mi away' }]}
+        selected={[]}
+        onChange={() => {}}
+      />
+    );
+    expect(screen.getByText('1.2 mi away')).toBeInTheDocument();
+  });
+
   it('renders nothing when items is empty', () => {
     const { container } = render(
       <ListFilter legend="Venues" items={[]} selected={[]} onChange={() => {}} />

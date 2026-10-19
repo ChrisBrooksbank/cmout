@@ -52,6 +52,11 @@ describe('EventDetail', () => {
     expect(screen.getByText('£10')).toBeInTheDocument();
   });
 
+  it('renders distance when provided', () => {
+    render(<EventDetail event={baseEvent} onBack={() => {}} distanceMiles={1.24} />);
+    expect(screen.getByText('1.2 mi away')).toBeInTheDocument();
+  });
+
   it('does not render price when price is null', () => {
     render(<EventDetail event={{ ...baseEvent, price: null }} onBack={() => {}} />);
     expect(screen.queryByText(/£/)).not.toBeInTheDocument();

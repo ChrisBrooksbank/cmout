@@ -1,7 +1,13 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
-import App, { balanceEventsByCategory, filterEvents, isInDateRange, defaultFilters } from './App';
+import App, {
+  applyDistancePreferences,
+  balanceEventsByCategory,
+  filterEvents,
+  isInDateRange,
+  defaultFilters,
+} from './App';
 import type { FilterOptions } from './App';
 import type { CmEvent } from './types';
 
@@ -49,6 +55,38 @@ function mockFetchError(status = 500) {
   );
 }
 
+function mockGeolocation(latitude = 51.736, longitude = 0.469) {
+  const geolocation = {
+    getCurrentPosition: vi.fn(
+      (
+        success: PositionCallback,
+        _error?: PositionErrorCallback | null,
+        _options?: PositionOptions
+      ) => {
+        success({
+          coords: {
+            latitude,
+            longitude,
+            accuracy: 10,
+            altitude: null,
+            altitudeAccuracy: null,
+            heading: null,
+            speed: null,
+          },
+          timestamp: Date.now(),
+        } as GeolocationPosition);
+      }
+    ),
+  };
+
+  Object.defineProperty(navigator, 'geolocation', {
+    value: geolocation,
+    configurable: true,
+  });
+
+  return geolocation;
+}
+
 function filters(overrides: Partial<FilterOptions> = {}): FilterOptions {
   return { ...defaultFilters, ...overrides };
 }
@@ -62,6 +100,7 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.useRealTimers();
   localStorage.clear();
+  Object.defineProperty(navigator, 'geolocation', { value: undefined, configurable: true });
 });
 
 describe('App', () => {
@@ -246,6 +285,110 @@ describe('App', () => {
       .getAllByRole('heading', { level: 2 })
       .map(heading => heading.textContent);
     expect(headings).toEqual(['Park Run', 'Track Meet']);
+  });
+
+  it('shows distances and sorts nearest first after location is enabled', async () => {
+    mockGeolocation();
+    mockFetch([
+      makeEvent({
+        id: 'far',
+        title: 'Hylands Event',
+        latitude: 51.712,
+        longitude: 0.429,
+      }),
+      makeEvent({
+        id: 'near',
+        title: 'City Centre Event',
+        latitude: 51.736,
+        longitude: 0.469,
+      }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /hylands event/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /use my location/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/distances are shown/i)).toBeInTheDocument();
+    });
+
+    const headings = screen
+      .getAllByRole('heading', { level: 2 })
+      .map(heading => heading.textContent);
+    expect(headings).toEqual(['City Centre Event', 'Hylands Event']);
+    expect(screen.getAllByText('Nearby').length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/2\.\d mi away/).length).toBeGreaterThan(0);
+  });
+
+  it('shows distances in the venue filter after location is enabled', async () => {
+    mockGeolocation();
+    mockFetch([
+      makeEvent({
+        id: 'near',
+        title: 'City Centre Event',
+        venue: 'Civic Centre',
+        latitude: 51.736,
+        longitude: 0.469,
+      }),
+      makeEvent({
+        id: 'far',
+        title: 'Hylands Event',
+        venue: 'Hylands Park',
+        latitude: 51.712,
+        longitude: 0.429,
+      }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /hylands event/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /use my location/i }));
+
+    await waitFor(() => {
+      const venueName = screen
+        .getAllByText('Hylands Park')
+        .find(element => element.classList.contains('list-filter__name'));
+      const venueLabel = venueName?.closest('label');
+      if (!venueLabel) throw new Error('Hylands Park venue label was not found');
+      expect(venueLabel).toHaveTextContent(/2\.\d mi away/);
+    });
+  });
+
+  it('filters events by selected distance radius', async () => {
+    mockGeolocation();
+    mockFetch([
+      makeEvent({
+        id: 'near',
+        title: 'City Centre Event',
+        latitude: 51.736,
+        longitude: 0.469,
+      }),
+      makeEvent({
+        id: 'far',
+        title: 'Hylands Event',
+        latitude: 51.712,
+        longitude: 0.429,
+      }),
+    ]);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: /hylands event/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /use my location/i }));
+    fireEvent.click(screen.getByLabelText('1 mi'));
+
+    expect(screen.getByRole('heading', { name: /city centre event/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /hylands event/i })).not.toBeInTheDocument();
   });
 });
 
@@ -444,6 +587,40 @@ describe('balanceEventsByCategory', () => {
     ];
 
     expect(balanceEventsByCategory(source)).toEqual(source);
+  });
+});
+
+describe('applyDistancePreferences', () => {
+  const userLocation = { latitude: 51.736, longitude: 0.469 };
+
+  it('sorts geocoded events by distance and places missing coordinates last', () => {
+    const result = applyDistancePreferences(
+      [
+        makeEvent({ id: 'far', latitude: 51.712, longitude: 0.429 }),
+        makeEvent({ id: 'missing', latitude: null, longitude: null }),
+        makeEvent({ id: 'near', latitude: 51.736, longitude: 0.469 }),
+      ],
+      userLocation,
+      null,
+      true
+    );
+
+    expect(result.map(event => event.id)).toEqual(['near', 'far', 'missing']);
+  });
+
+  it('filters to events within the selected radius', () => {
+    const result = applyDistancePreferences(
+      [
+        makeEvent({ id: 'near', latitude: 51.736, longitude: 0.469 }),
+        makeEvent({ id: 'far', latitude: 51.712, longitude: 0.429 }),
+        makeEvent({ id: 'missing', latitude: null, longitude: null }),
+      ],
+      userLocation,
+      1,
+      false
+    );
+
+    expect(result.map(event => event.id)).toEqual(['near']);
   });
 });
 

@@ -481,6 +481,14 @@ fieldset {
   gap: 6px;
 }
 
+.event-card__meta,
+.event-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .event-card__category {
   display: inline-block;
   align-self: flex-start;
@@ -492,6 +500,20 @@ fieldset {
   border-radius: var(--radius-full);
   color: #fff;
   background: var(--cat-other);
+}
+
+.event-card__distance,
+.event-detail__distance {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  color: var(--text);
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(6, 182, 212, 0.38);
 }
 
 /* Per-category badge colors */
@@ -1099,6 +1121,15 @@ fieldset {
   color: var(--text-very-muted);
 }
 
+.list-filter__meta {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
 .list-filter__empty {
   font-size: 0.8rem;
   color: var(--text-very-muted);
@@ -1204,6 +1235,109 @@ fieldset {
 
 .filter-clear-all:hover {
   text-decoration: underline;
+}
+
+/* ----- Distance Filter ----- */
+.distance-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.distance-filter__locate {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  transition:
+    background var(--transition),
+    opacity var(--transition);
+}
+
+.distance-filter__locate:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.distance-filter__locate:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.distance-filter__status {
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.distance-filter__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.distance-filter__toggle:has(input:disabled) {
+  cursor: not-allowed;
+  color: var(--text-very-muted);
+}
+
+.distance-filter__toggle input,
+.distance-filter__radius-label input {
+  accent-color: var(--accent);
+}
+
+.distance-filter__radius {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.distance-filter__radius:disabled {
+  opacity: 0.5;
+}
+
+.distance-filter__legend {
+  width: 100%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.distance-filter__radius-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition:
+    color var(--transition),
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.distance-filter__radius-label:hover {
+  color: var(--text);
+  border-color: var(--text-very-muted);
+}
+
+.distance-filter__radius-label:has(input:checked) {
+  color: #fff;
+  background: var(--bg-light);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 @media (min-width: 1024px) {

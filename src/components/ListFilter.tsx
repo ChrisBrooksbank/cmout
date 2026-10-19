@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 
 interface ListFilterProps {
   legend: string;
-  items: { name: string; count: number }[];
+  items: { name: string; count: number; meta?: string }[];
   selected: string[];
   onChange: (selected: string[]) => void;
 }
@@ -49,6 +49,7 @@ export default function ListFilter({ legend, items, selected, onChange }: ListFi
             />
             <span className="list-filter__name">{item.name}</span>
             <span className="list-filter__count">({item.count})</span>
+            {item.meta && <span className="list-filter__meta">{item.meta}</span>}
           </label>
         ))}
         {filtered.length === 0 && <p className="list-filter__empty">No matches</p>}

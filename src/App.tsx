@@ -15,6 +15,7 @@ import OfflineIndicator from './components/OfflineIndicator';
 import PushNotificationPrompt from './components/PushNotificationPrompt';
 import SearchBar from './components/SearchBar';
 import SettingsModal from './components/SettingsModal';
+import { formatDistanceMiles, getEventDistanceMiles, type Coordinates } from './utils/distance';
 
 interface RawEvent extends Omit<CmEvent, 'startDate' | 'endDate'> {
   startDate: string;
@@ -36,6 +37,7 @@ export interface FilterOptions {
   customDate: string;
   selectedVenues: string[];
   selectedPromoters: string[];
+  maxDistanceMiles: number | null;
 }
 
 export const defaultFilters: FilterOptions = {
@@ -45,6 +47,7 @@ export const defaultFilters: FilterOptions = {
   customDate: '',
   selectedVenues: [],
   selectedPromoters: [],
+  maxDistanceMiles: null,
 };
 
 type PersistedFilterOptions = Omit<FilterOptions, 'searchQuery'>;
@@ -81,6 +84,7 @@ const defaultPersistedFilters: PersistedFilterOptions = {
   customDate: defaultFilters.customDate,
   selectedVenues: defaultFilters.selectedVenues,
   selectedPromoters: defaultFilters.selectedPromoters,
+  maxDistanceMiles: defaultFilters.maxDistanceMiles,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -102,6 +106,10 @@ function validDateRange(value: unknown): DateRange {
   return DATE_RANGES.includes(value as DateRange) ? (value as DateRange) : 'all';
 }
 
+function validMaxDistance(value: unknown): number | null {
+  return typeof value === 'number' && [1, 3, 5, 10, 20].includes(value) ? value : null;
+}
+
 export function loadPersistedFilters(): PersistedFilterOptions {
   try {
     const stored = localStorage.getItem(FILTER_STORAGE_KEY);
@@ -116,10 +124,45 @@ export function loadPersistedFilters(): PersistedFilterOptions {
       customDate: typeof parsed.customDate === 'string' ? parsed.customDate : '',
       selectedVenues: validStringArray(parsed.selectedVenues),
       selectedPromoters: validStringArray(parsed.selectedPromoters),
+      maxDistanceMiles: validMaxDistance(parsed.maxDistanceMiles),
     };
   } catch {
     return defaultPersistedFilters;
   }
+}
+
+export function applyDistancePreferences(
+  events: CmEvent[],
+  userLocation: Coordinates | null,
+  maxDistanceMiles: number | null,
+  sortByDistance: boolean
+): CmEvent[] {
+  if (!userLocation || (maxDistanceMiles === null && !sortByDistance)) return events;
+
+  const withDistance = events.map(event => ({
+    event,
+    distanceMiles: getEventDistanceMiles(event, userLocation),
+  }));
+
+  const filtered =
+    maxDistanceMiles === null
+      ? withDistance
+      : withDistance.filter(
+          ({ distanceMiles }) => distanceMiles !== null && distanceMiles <= maxDistanceMiles
+        );
+
+  if (!sortByDistance) return filtered.map(({ event }) => event);
+
+  return [...filtered]
+    .sort((a, b) => {
+      if (a.distanceMiles === null && b.distanceMiles === null) {
+        return a.event.startDate.getTime() - b.event.startDate.getTime();
+      }
+      if (a.distanceMiles === null) return 1;
+      if (b.distanceMiles === null) return -1;
+      return a.distanceMiles - b.distanceMiles;
+    })
+    .map(({ event }) => event);
 }
 
 function savePersistedFilters(filters: PersistedFilterOptions) {
@@ -310,6 +353,15 @@ export default function App() {
   const [selectedPromoters, setSelectedPromoters] = useState<string[]>(
     initialFilters.selectedPromoters
   );
+  const [maxDistanceMiles, setMaxDistanceMiles] = useState<number | null>(
+    initialFilters.maxDistanceMiles
+  );
+  const [sortByDistance, setSortByDistance] = useState(false);
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const [locationStatus, setLocationStatus] = useState<
+    'idle' | 'locating' | 'ready' | 'error' | 'unsupported'
+  >('idle');
+  const [locationMessage, setLocationMessage] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CmEvent | null>(null);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -343,8 +395,16 @@ export default function App() {
       customDate,
       selectedVenues,
       selectedPromoters,
+      maxDistanceMiles,
     });
-  }, [selectedCategories, dateRange, customDate, selectedVenues, selectedPromoters]);
+  }, [
+    selectedCategories,
+    dateRange,
+    customDate,
+    selectedVenues,
+    selectedPromoters,
+    maxDistanceMiles,
+  ]);
 
   // Run semantic search when query changes and model is ready
   useEffect(() => {
@@ -378,13 +438,28 @@ export default function App() {
   // Derive unique venues/promoters from all events (stable lists)
   const venueItems = useMemo(() => {
     const counts = new Map<string, number>();
+    const distances = new Map<string, number>();
     for (const ev of events) {
       counts.set(ev.venue, (counts.get(ev.venue) ?? 0) + 1);
+      const distanceMiles = getEventDistanceMiles(ev, userLocation);
+      if (distanceMiles !== null) {
+        const current = distances.get(ev.venue);
+        if (current === undefined || distanceMiles < current) {
+          distances.set(ev.venue, distanceMiles);
+        }
+      }
     }
     return Array.from(counts.entries())
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, count]) => {
+        const distanceMiles = distances.get(name);
+        return {
+          name,
+          count,
+          meta: distanceMiles !== undefined ? formatDistanceMiles(distanceMiles) : undefined,
+        };
+      })
       .sort((a, b) => b.count - a.count);
-  }, [events]);
+  }, [events, userLocation]);
 
   const promoterItems = useMemo(() => {
     const counts = new Map<string, number>();
@@ -405,6 +480,7 @@ export default function App() {
     customDate,
     selectedVenues,
     selectedPromoters,
+    maxDistanceMiles,
   };
 
   const filteredEvents = filterEvents(
@@ -412,20 +488,41 @@ export default function App() {
     filterOptions,
     searchQuery && modelReady ? semanticResults : undefined
   );
+  const distanceFilteredEvents = applyDistancePreferences(
+    filteredEvents,
+    userLocation,
+    maxDistanceMiles,
+    sortByDistance
+  );
   const hasFocusedFilter =
     searchQuery.trim() !== '' ||
     selectedCategories.length > 0 ||
     selectedVenues.length > 0 ||
-    selectedPromoters.length > 0;
+    selectedPromoters.length > 0 ||
+    maxDistanceMiles !== null ||
+    sortByDistance;
   const displayedEvents = hasFocusedFilter
-    ? filteredEvents
-    : balanceEventsByCategory(filteredEvents);
+    ? distanceFilteredEvents
+    : balanceEventsByCategory(distanceFilteredEvents);
 
   const totalFilterCount =
     selectedCategories.length +
     selectedVenues.length +
     selectedPromoters.length +
-    (dateRange === 'all' ? 0 : 1);
+    (dateRange === 'all' ? 0 : 1) +
+    (maxDistanceMiles === null ? 0 : 1);
+
+  const geocodedEventCount = useMemo(
+    () =>
+      events.filter(event => Number.isFinite(event.latitude) && Number.isFinite(event.longitude))
+        .length,
+    [events]
+  );
+
+  const getDistanceMiles = useCallback(
+    (event: CmEvent) => getEventDistanceMiles(event, userLocation),
+    [userLocation]
+  );
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -434,10 +531,45 @@ export default function App() {
     setCustomDate('');
     setSelectedVenues([]);
     setSelectedPromoters([]);
+    setMaxDistanceMiles(null);
+    setSortByDistance(false);
+  };
+
+  const useCurrentLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('unsupported');
+      setLocationMessage('Location is not available in this browser.');
+      return;
+    }
+
+    setLocationStatus('locating');
+    setLocationMessage('Finding your location...');
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setLocationStatus('ready');
+        setLocationMessage('Distances are shown from your current location.');
+        setSortByDistance(true);
+      },
+      () => {
+        setLocationStatus('error');
+        setLocationMessage('Could not get your location. Check browser permissions and try again.');
+      },
+      { enableHighAccuracy: false, maximumAge: 5 * 60 * 1000, timeout: 10000 }
+    );
   };
 
   if (selectedEvent) {
-    return <EventDetail event={selectedEvent} onBack={() => setSelectedEvent(null)} />;
+    return (
+      <EventDetail
+        event={selectedEvent}
+        onBack={() => setSelectedEvent(null)}
+        distanceMiles={getDistanceMiles(selectedEvent)}
+      />
+    );
   }
 
   const categoryFilter = (
@@ -511,6 +643,56 @@ export default function App() {
             customDate={customDate}
             onCustomDateChange={setCustomDate}
           />
+          <FilterSection
+            label="Distance"
+            activeCount={(sortByDistance ? 1 : 0) + (maxDistanceMiles === null ? 0 : 1)}
+          >
+            <div className="distance-filter">
+              <button
+                type="button"
+                className="distance-filter__locate"
+                onClick={useCurrentLocation}
+                disabled={locationStatus === 'locating'}
+              >
+                {locationStatus === 'ready' ? 'Update my location' : 'Use my location'}
+              </button>
+              <p className="distance-filter__status" aria-live="polite">
+                {locationMessage || `${geocodedEventCount} events have venue locations.`}
+              </p>
+              <label className="distance-filter__toggle">
+                <input
+                  type="checkbox"
+                  checked={sortByDistance}
+                  disabled={!userLocation}
+                  onChange={event => setSortByDistance(event.target.checked)}
+                />
+                <span>Nearest first</span>
+              </label>
+              <fieldset className="distance-filter__radius" disabled={!userLocation}>
+                <legend className="distance-filter__legend">Within</legend>
+                {[1, 3, 5, 10, 20].map(distance => (
+                  <label key={distance} className="distance-filter__radius-label">
+                    <input
+                      type="radio"
+                      name="max-distance"
+                      checked={maxDistanceMiles === distance}
+                      onChange={() => setMaxDistanceMiles(distance)}
+                    />
+                    <span>{distance} mi</span>
+                  </label>
+                ))}
+                <label className="distance-filter__radius-label">
+                  <input
+                    type="radio"
+                    name="max-distance"
+                    checked={maxDistanceMiles === null}
+                    onChange={() => setMaxDistanceMiles(null)}
+                  />
+                  <span>Any</span>
+                </label>
+              </fieldset>
+            </div>
+          </FilterSection>
           <FilterSection label="Categories" activeCount={selectedCategories.length}>
             {categoryFilter}
           </FilterSection>
@@ -538,7 +720,13 @@ export default function App() {
               {error}
             </p>
           )}
-          {!loading && !error && <EventList events={displayedEvents} onSelect={setSelectedEvent} />}
+          {!loading && !error && (
+            <EventList
+              events={displayedEvents}
+              onSelect={setSelectedEvent}
+              getDistanceMiles={getDistanceMiles}
+            />
+          )}
         </section>
       </main>
     </div>
