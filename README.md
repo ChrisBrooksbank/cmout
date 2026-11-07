@@ -1,5 +1,9 @@
 # cmout
 
+<!-- hub-link -->
+> Part of [Chris's app hub](https://chrisbrooksbank-hub.netlify.app) - a directory of all my deployed apps.
+<!-- /hub-link -->
+
 Discover what's on in Chelmsford. A PWA that aggregates local events from multiple sources into one clean, mobile-first interface.
 
 **Live:** https://cmout.netlify.app
